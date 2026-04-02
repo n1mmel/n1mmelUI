@@ -348,5 +348,6 @@ hooksecurefunc("PaperDollFrame_SetItemLevel", function(statFrame, unit)
         if avgIlvlEquipped and statFrame.Value then
             statFrame.Value:SetText(string.format("%.2f", avgIlvlEquipped))
         end
+        ns.SetUIFont(statFrame.Value, N1mmelUIDB.ilvlCharSize or 13, "OUTLINE")
     end
 end)
