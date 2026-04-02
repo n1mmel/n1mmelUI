@@ -1,0 +1,35 @@
+## Interface: 120001, 120005
+## Title: n1mmelUI
+## Notes: A lightweight Vanilla UI enhancement providing QoL features, item level display, chat improvements, and more.
+## Category: User Interface
+## Category-deDE: Benutzerinterface
+## Category-esES: Interfaz de usuario
+## Category-frFR: Interface utilisateur
+## Category-ruRU: Интерфейс пользователя
+## Author: n1mmel
+## Version: 1.2
+## SavedVariables: N1mmelUIDB
+## IconTexture: 136243
+
+libs\LibStub\LibStub.lua
+libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+
+locales\enUS.lua
+locales\deDE.lua
+locales\frFR.lua
+locales\esES.lua
+locales\ruRU.lua
+locales\enGB.lua
+core.lua
+modules\font.lua
+gui.lua
+
+#Modules
+modules\chat.lua
+modules\automation.lua
+modules\minimap.lua
+modules\tooltip.lua
+modules\itemlevel.lua
+modules\unitframes.lua
+modules\qol.lua
