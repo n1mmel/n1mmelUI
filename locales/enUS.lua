@@ -12,8 +12,6 @@ L.TOOLTIP_TARGET = "Target:"
 L.ROLE_TANK = "Role: Tank"
 L.ROLE_HEALER = "Role: Healer"
 L.ROLE_DAMAGER = "Role: DPS"
-L.KEYSTONE_INSERTED = "Keystone automatically inserted:"
-
 
 L.TAB_SETTINGS = "General"
 L.TAB_GEAR = "Equipment"

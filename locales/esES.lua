@@ -13,7 +13,6 @@ L.TOOLTIP_TARGET = "Objetivo:"
 L.ROLE_TANK = "Rol: Tanque"
 L.ROLE_HEALER = "Rol: Sanador"
 L.ROLE_DAMAGER = "Rol: DPS"
-L.KEYSTONE_INSERTED = "Piedra angular insertada automáticamente:"
 
 L.TAB_SETTINGS = "General"
 L.TAB_GEAR = "Equipo"

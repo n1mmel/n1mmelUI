@@ -13,7 +13,6 @@ L.TOOLTIP_TARGET = "Ziel:"
 L.ROLE_TANK = "Rolle: Tank"
 L.ROLE_HEALER = "Rolle: Heiler"
 L.ROLE_DAMAGER = "Rolle: DD"
-L.KEYSTONE_INSERTED = "Schlüsselstein automatisch eingelegt:"
 
 L.TAB_SETTINGS = "Allgemein"
 L.TAB_GEAR = "Ausrüstung"

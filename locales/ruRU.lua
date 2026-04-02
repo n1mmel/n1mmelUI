@@ -13,7 +13,6 @@ L.TOOLTIP_TARGET = "Цель:"
 L.ROLE_TANK = "Роль: Танк"
 L.ROLE_HEALER = "Роль: Лекарь"
 L.ROLE_DAMAGER = "Роль: Урон"
-L.KEYSTONE_INSERTED = "Ключ автоматически вставлен:"
 
 L.TAB_SETTINGS = "Общее"
 L.TAB_GEAR = "Экипировка"
