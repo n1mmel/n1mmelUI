@@ -153,8 +153,17 @@ function ns.UpdateBagItemLevels()
             end
         end
     end
-    updateBank(_G.BankPanel)
-    updateBank(_G.AccountBankPanel)
+    -- BankPanel 
+    local bPanel = rawget(_G, "BankPanel")
+    if bPanel then
+        updateBank(bPanel)
+    end
+
+    -- AccountBankPanel 
+    local aPanel = rawget(_G, "AccountBankPanel")
+    if aPanel then
+        updateBank(aPanel)
+    end
 end
 
 if ContainerFrameCombinedBags then
@@ -190,8 +199,17 @@ local function hookBankPanel(panel)
     end
 end
 
-hookBankPanel(_G.BankPanel)
-hookBankPanel(_G.AccountBankPanel)
+-- BankPanel check and hook
+local bankPanel = rawget(_G, "BankPanel")
+if bankPanel then
+    hookBankPanel(bankPanel)
+end
+
+-- AccountBankPanel check and hook
+local accountBankPanel = rawget(_G, "AccountBankPanel")
+if accountBankPanel then
+    hookBankPanel(accountBankPanel)
+end
 
 ---------------------------------------------------------
 -- INSPECT FRAME (Other players)

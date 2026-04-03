@@ -41,15 +41,27 @@ end
 local function SkinAllTexts(frame, size, reset)
     if not frame then return end
     
+    -- NEU: Sicherheitsfilter 1 (Namen ignorieren)
+    -- Wenn der Frame für Kampftext zuständig ist, brechen wir ab.
+    if frame.GetName and frame:GetName() then
+        local name = frame:GetName()
+        if string.find(name, "HitIndicator") or string.find(name, "Feedback") then
+            return 
+        end
+    end
+
     -- Wenn das Objekt ein FontString ist
     if frame:IsObjectType("FontString") then
-        if reset then
-            -- Hier setzen wir die Schrift auf den Blizzard-Standard zurück
-            -- STANDARD_TEXT_FONT ist die interne Variable von WoW für die Standardschrift
-            frame:SetFont(STANDARD_TEXT_FONT, size, "OUTLINE")
+        -- NEU: Sicherheitsfilter 2 (Riesige Schriften ignorieren)
+        local _, currentSize = frame:GetFont()
+        if currentSize and currentSize > 20 then
+            -- Wir machen nichts! Dieser Text ist absichtlich so groß für Animationen.
         else
-            -- Hier setzen wir deine Custom-Schrift
-            ns.SetUIFont(frame, size, "OUTLINE")
+            if reset then
+                frame:SetFont(STANDARD_TEXT_FONT, size, "OUTLINE")
+            else
+                ns.SetUIFont(frame, size, "OUTLINE")
+            end
         end
     end
 
@@ -63,10 +75,14 @@ local function SkinAllTexts(frame, size, reset)
     local regions = {frame:GetRegions()}
     for _, region in ipairs(regions) do
         if region:IsObjectType("FontString") then
-            if reset then
-                region:SetFont(STANDARD_TEXT_FONT, size, "OUTLINE")
-            else
-                ns.SetUIFont(region, size, "OUTLINE")
+            local _, currentSize = region:GetFont()
+            -- Auch bei Regionen den Größen-Filter anwenden
+            if not (currentSize and currentSize > 20) then
+                if reset then
+                    region:SetFont(STANDARD_TEXT_FONT, size, "OUTLINE")
+                else
+                    ns.SetUIFont(region, size, "OUTLINE")
+                end
             end
         end
     end
@@ -107,7 +123,7 @@ end)
 local fontEventFrame = CreateFrame("Frame")
 fontEventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 fontEventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
-fontEventFrame:RegisterEvent("UNIT_HEALTH")
+-- DIE ZEILE MIT "UNIT_HEALTH" WURDE HIER GELÖSCHT!
 fontEventFrame:SetScript("OnEvent", function()
     ns.UpdateUnitFrameFonts()
 end)
