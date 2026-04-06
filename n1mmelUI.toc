@@ -7,7 +7,7 @@
 ## Category-frFR: Interface utilisateur
 ## Category-ruRU: Интерфейс пользователя
 ## Author: n1mmel
-## Version: 1.2.1
+## Version: 1.2.2
 ## SavedVariables: N1mmelUIDB
 ## IconTexture: 136243
 
