@@ -72,6 +72,16 @@ SlashCmdList["N1MMELRELOAD"] = function()
     ReloadUI()
 end
 
+local _, classTag = UnitClass("player")
+-- Speichert die RGB-Werte (ns.classColor.r, ns.classColor.g, ns.classColor.b)
+ns.classColor = RAID_CLASS_COLORS[classTag] or {
+    r = 1,
+    g = 1,
+    b = 1
+}
+-- Speichert den Hex-Code für Texte (z.B. "|c" .. ns.classHex .. "Text|r")
+ns.classHex = string.format("ff%02x%02x%02x", ns.classColor.r * 255, ns.classColor.g * 255, ns.classColor.b * 255)
+
 ---------------------------------------------------------
 -- 3. DATABASE INITIALIZATION (SavedVariables)
 ---------------------------------------------------------
@@ -106,7 +116,8 @@ function ns.InitDB()
             chatURLs = true,
             showCrestFrame = false,
             crestFramePos = {"CENTER", nil, "CENTER", 0, 0},
-            crestFontSize = 11
+            crestFontSize = 11,
+            infoWindow = false
         }
     end
 
@@ -179,6 +190,9 @@ function ns.InitDB()
     end
     if N1mmelUIDB.debugMode == nil then
         N1mmelUIDB.debugMode = false
+    end
+    if N1mmelUIDB.infoWindow == nil then
+        N1mmelUIDB.infoWindow = false
     end
 end
 
@@ -262,5 +276,14 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
     end
     if ns.ForceTargetColorUpdate then
         ns.ForceTargetColorUpdate()
+    end
+
+    -- Info Window Status prüfen
+    if ns.infoWindow then
+        if N1mmelUIDB.infoWindow then
+            ns.infoWindow:Show()
+        else
+            ns.infoWindow:Hide()
+        end
     end
 end)

@@ -12,6 +12,8 @@ L.TOOLTIP_TARGET = "Target:"
 L.ROLE_TANK = "Role: Tank"
 L.ROLE_HEALER = "Role: Healer"
 L.ROLE_DAMAGER = "Role: DPS"
+L.EMPTYSLOTS = "Empty Slots:"
+L.GOLD = "Gold:"
 
 L.TAB_SETTINGS = "General"
 L.TAB_GEAR = "Equipment"

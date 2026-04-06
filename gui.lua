@@ -142,10 +142,25 @@ local function BuildPage1_General(page)
         function(self)
             N1mmelUIDB.autoSell = self:GetChecked()
         end)
+    local cbInfo = ns.CreateCheckbox(page, cbSell, "TOPLEFT", "BOTTOMLEFT", 0, -5, "Show Info Window",
+        N1mmelUIDB.infoWindow, function(self)
+            -- Speichere den Zustand in der DB
+            N1mmelUIDB.infoWindow = self:GetChecked()
+
+            -- Sag dem Fenster direkt, was es tun soll
+            if ns.infoWindow then
+                if N1mmelUIDB.infoWindow then
+                    ns.infoWindow:Show()
+                else
+                    ns.infoWindow:Hide()
+                end
+            end
+        end)
+
 
     -- Font Dropdown
     local fontLabel = page:CreateFontString(nil, "ARTWORK")
-    fontLabel:SetPoint("TOPLEFT", cbSell, "BOTTOMLEFT", 5, -20)
+    fontLabel:SetPoint("TOPLEFT", cbInfo, "BOTTOMLEFT", 5, -20)
     ns.SetUIFont(fontLabel, 12)
     fontLabel:SetText(L.FONT_LABEL)
 
@@ -183,7 +198,7 @@ local function BuildPage1_General(page)
     fontWarn:SetText(L.FONT_RELOAD_WARN)
 
     local fontReload = page:CreateFontString(nil, "ARTWORK")
-    fontReload:SetPoint("TOPLEFT", fontWarn, "BOTTOMLEFT", 20, -115)
+    fontReload:SetPoint("TOPLEFT", fontWarn, "BOTTOMLEFT", 20, -75)
     ns.SetUIFont(fontReload, 11)
     fontReload:SetTextColor(0.8, 0.8, 0.8)
     fontReload:SetText(
@@ -193,7 +208,7 @@ local function BuildPage1_General(page)
     local btnReload = CreateFrame("BUTTON", nil, page, btnReloadTemplate)
     btnReload:SetSize(100, 30)
     btnReload:SetPoint("BOTTOMRIGHT", -5, 5)
-    btnReload:SetText("Reload UI")    
+    btnReload:SetText("Reload UI")
     btnReload:SetScript("OnClick", function()
         ReloadUI()
     end)
@@ -888,6 +903,15 @@ function ns.BuildStandaloneGUI()
     cwBorder:SetSize(350, 2);
     cwBorder:SetPoint("TOP", ns.checkWin, "TOP", 0, 0);
     cwBorder:SetColorTexture(r, g, b, 0.8)
+
+    -- Bottom Border (in Class Color)
+    local cwBorder2 = ns.checkWin:CreateTexture(nil, "BORDER")
+    cwBorder2:SetSize(350, 2);
+    cwBorder2:SetPoint("BOTTOM", ns.checkWin, "BOTTOM", 0, 0);
+    cwBorder2:SetColorTexture(r, g, b, 0.8)
+
+    
+
 
     local cwCloseBtn = CreateFrame("Button", nil, ns.checkWin, "UIPanelCloseButton")
     cwCloseBtn:SetPoint("TOPRIGHT", ns.checkWin, "TOPRIGHT", -5, -5);

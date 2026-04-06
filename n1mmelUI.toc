@@ -26,6 +26,7 @@ modules\font.lua
 gui.lua
 
 #Modules
+modules\infowindow.lua
 modules\chat.lua
 modules\automation.lua
 modules\minimap.lua
