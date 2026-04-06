@@ -2,35 +2,43 @@ local addonName, ns = ...
 local L = ns.L
 
 ---------------------------------------------------------
--- ITEM LEVEL LOGIC (Character, Bags, Bank)
+-- 1. CONSTANTS & SETTINGS
 ---------------------------------------------------------
-local equipSlots = {"HeadSlot", "NeckSlot", "ShoulderSlot", "BackSlot", "ChestSlot", "ShirtSlot", "TabardSlot",
-                    "WristSlot", "HandsSlot", "WaistSlot", "LegsSlot", "FeetSlot", "Finger0Slot", "Finger1Slot",
-                    "Trinket0Slot", "Trinket1Slot", "MainHandSlot", "SecondaryHandSlot"}
-
-local enchantableSlotIDs = {
-    [1] = true,
-    [3] = true,
-    [5] = true,
-    [7] = true,
-    [8] = true,
-    [11] = true,
-    [12] = true,
-    [16] = true,
-    [17] = true
+-- All valid equipment slot names in the character/inspect frame
+local equipSlots = {
+    "HeadSlot", "NeckSlot", "ShoulderSlot", "BackSlot", "ChestSlot", "ShirtSlot", "TabardSlot",
+    "WristSlot", "HandsSlot", "WaistSlot", "LegsSlot", "FeetSlot", "Finger0Slot", "Finger1Slot",
+    "Trinket0Slot", "Trinket1Slot", "MainHandSlot", "SecondaryHandSlot"
 }
 
+-- Slot IDs that currently accept enchantments
+local enchantableSlotIDs = {
+    [1] = true,  -- Head
+    [3] = true,  -- Shoulder
+    [5] = true,  -- Chest
+    [7] = true,  -- Legs
+    [8] = true,  -- Feet
+    [11] = true, -- Finger 1
+    [12] = true, -- Finger 2
+    [16] = true, -- Main Hand
+    [17] = true  -- Off Hand
+}
+
+---------------------------------------------------------
+-- 2. CORE LOGIC: APPLY TEXT TO BUTTONS
+---------------------------------------------------------
 local function ApplyItemLevelToButton(button, itemLink, isBag)
     local fontSize = isBag and (N1mmelUIDB.ilvlBagsSize or 13) or (N1mmelUIDB.ilvlCharSize or 13)
 
+    -- Create or update the FontString for the ItemLevel
     if not button.n1mmelIlvlText then
         button.n1mmelIlvlText = button:CreateFontString(nil, "OVERLAY")
         button.n1mmelIlvlText:SetDrawLayer("OVERLAY", 7)
         button.n1mmelIlvlText:SetPoint("TOP", button, "TOP", 0, -2)
         ns.SetUIFont(button.n1mmelIlvlText, fontSize, "OUTLINE")
     else
+        -- Only update the font if the size actually changed
         if button.n1mmelIlvlText.n1Size ~= fontSize then
-            -- Nutzen der zentralen Font-Funktion aus der core.lua
             ns.SetUIFont(button.n1mmelIlvlText, fontSize, "OUTLINE")
         end
     end
@@ -45,17 +53,20 @@ local function ApplyItemLevelToButton(button, itemLink, isBag)
 
     local itemID, _, _, equipLoc, _, classID = C_Item.GetItemInfoInstant(itemLink)
     if not itemID then
-        textFrame:SetText("");
+        textFrame:SetText("")
         return
     end
 
+    -- Get detailed item level (accounts for upgrades)
     local detailedIlvl = C_Item.GetDetailedItemLevelInfo(itemLink)
     local _, _, quality, baseIlvl = C_Item.GetItemInfo(itemLink)
     local ilvl = detailedIlvl or baseIlvl
 
-    if ilvl and ilvl > 1 and (classID == 2 or classID == 4) and equipLoc ~= "INVTYPE_TABARD" and equipLoc ~=
-        "INVTYPE_SHIRT" then
+    -- Only show iLvl for weapons (2) and armor (4), ignoring tabards and shirts
+    if ilvl and ilvl > 1 and (classID == 2 or classID == 4) and equipLoc ~= "INVTYPE_TABARD" and equipLoc ~= "INVTYPE_SHIRT" then
         textFrame:SetText(ilvl)
+        
+        -- Apply chosen color mode
         if N1mmelUIDB.ilvlColorMode == "WHITE" then
             textFrame:SetTextColor(1, 1, 1)
         elseif N1mmelUIDB.ilvlColorMode == "YELLOW" then
@@ -69,13 +80,16 @@ local function ApplyItemLevelToButton(button, itemLink, isBag)
     end
 end
 
+---------------------------------------------------------
+-- 3. CHARACTER FRAME (Player Gear & Enchants)
+---------------------------------------------------------
 function ns.UpdateCharacterItemLevels()
-    if not CharacterFrame:IsShown() then
-        return
-    end
+    if not CharacterFrame:IsShown() then return end
+
     for _, slotName in ipairs(equipSlots) do
         local slotFrame = _G["Character" .. slotName]
         if slotFrame then
+            -- Create missing enchant warning indicator (Red 'X')
             if not slotFrame.n1mmelEnchantWarn then
                 slotFrame.n1mmelEnchantWarn = slotFrame:CreateFontString(nil, "OVERLAY")
                 slotFrame.n1mmelEnchantWarn:SetDrawLayer("OVERLAY", 7)
@@ -89,6 +103,7 @@ function ns.UpdateCharacterItemLevels()
 
             ApplyItemLevelToButton(slotFrame, itemLink, false)
 
+            -- Check for missing enchantments on enchantable items
             if N1mmelUIDB.ilvlChar and itemLink then
                 if enchantableSlotIDs[slotId] then
                     local enchantID = string.match(itemLink, "item:%d+:(%d*)")
@@ -108,15 +123,18 @@ function ns.UpdateCharacterItemLevels()
 end
 hooksecurefunc("PaperDollItemSlotButton_Update", ns.UpdateCharacterItemLevels)
 
+---------------------------------------------------------
+-- 4. BAGS & BANK (Inventory Item Levels)
+---------------------------------------------------------
 local function UpdateContainerButton(button, bag, slot)
-    if not button then
-        return
-    end
+    if not button then return end
     slot = slot or button:GetID()
+    
     if not (bag and slot) then
         ApplyItemLevelToButton(button, nil, true)
         return
     end
+    
     local info = C_Container.GetContainerItemInfo(bag, slot)
     ApplyItemLevelToButton(button, info and info.hyperlink, true)
 end
@@ -133,14 +151,19 @@ function ns.UpdateAllBagButtons(frame)
 end
 
 function ns.UpdateBagItemLevels()
+    -- Modern Backpack (Combined Bags)
     if ContainerFrameCombinedBags then
         ns.UpdateAllBagButtons(ContainerFrameCombinedBags)
     end
+    
+    -- Separated Bags
     if ContainerFrameContainer and ContainerFrameContainer.ContainerFrames then
         for _, frame in ipairs(ContainerFrameContainer.ContainerFrames) do
             ns.UpdateAllBagButtons(frame)
         end
     end
+    
+    -- Bank and Account Bank (Warband Bank from TWW/Midnight)
     local updateBank = function(frame)
         if frame and frame.EnumerateValidItems then
             for a, b in frame:EnumerateValidItems() do
@@ -153,32 +176,28 @@ function ns.UpdateBagItemLevels()
             end
         end
     end
-    -- BankPanel 
-    local bPanel = rawget(_G, "BankPanel")
-    if bPanel then
-        updateBank(bPanel)
-    end
 
-    -- AccountBankPanel 
+    local bPanel = rawget(_G, "BankPanel")
+    if bPanel then updateBank(bPanel) end
+
     local aPanel = rawget(_G, "AccountBankPanel")
-    if aPanel then
-        updateBank(aPanel)
-    end
+    if aPanel then updateBank(aPanel) end
 end
 
+-- Hooks for updating bags when items move
 if ContainerFrameCombinedBags then
     hooksecurefunc(ContainerFrameCombinedBags, "UpdateItems", ns.UpdateAllBagButtons)
 end
+
 if ContainerFrameContainer and ContainerFrameContainer.ContainerFrames then
     for _, frame in ipairs(ContainerFrameContainer.ContainerFrames) do
         hooksecurefunc(frame, "UpdateItems", ns.UpdateAllBagButtons)
     end
 end
 
+-- Hook for modern Bank Panels
 local function hookBankPanel(panel)
-    if not panel then
-        return
-    end
+    if not panel then return end
     local update = function(frame)
         if frame and frame.EnumerateValidItems then
             for a, b in frame:EnumerateValidItems() do
@@ -191,6 +210,7 @@ local function hookBankPanel(panel)
             end
         end
     end
+    
     if panel.GenerateItemSlotsForSelectedTab then
         hooksecurefunc(panel, "GenerateItemSlotsForSelectedTab", update)
     end
@@ -199,34 +219,20 @@ local function hookBankPanel(panel)
     end
 end
 
--- BankPanel check and hook
-local bankPanel = rawget(_G, "BankPanel")
-if bankPanel then
-    hookBankPanel(bankPanel)
-end
-
--- AccountBankPanel check and hook
-local accountBankPanel = rawget(_G, "AccountBankPanel")
-if accountBankPanel then
-    hookBankPanel(accountBankPanel)
-end
+if rawget(_G, "BankPanel") then hookBankPanel(rawget(_G, "BankPanel")) end
+if rawget(_G, "AccountBankPanel") then hookBankPanel(rawget(_G, "AccountBankPanel")) end
 
 ---------------------------------------------------------
--- INSPECT FRAME (Other players)
+-- 5. INSPECT FRAME (Other Players)
 ---------------------------------------------------------
 function ns.SetupInspectUI()
-    if ns.inspectHooked then
-        return
-    end
+    if ns.inspectHooked then return end
 
     hooksecurefunc("InspectPaperDollItemSlotButton_Update", function(button)
-        if not N1mmelUIDB.ilvlChar then
-            return
-        end
+        if not N1mmelUIDB.ilvlChar then return end
         local unit = InspectFrame.unit
-        if not unit then
-            return
-        end
+        if not unit then return end
+        
         local itemLink = GetInventoryItemLink(unit, button:GetID())
         ApplyItemLevelToButton(button, itemLink, false)
     end)
@@ -234,10 +240,10 @@ function ns.SetupInspectUI()
     local inspectEventFrame = CreateFrame("Frame")
     inspectEventFrame:RegisterEvent("INSPECT_READY")
     inspectEventFrame:SetScript("OnEvent", function(self, event, guid)
-        if not N1mmelUIDB.ilvlChar then
-            return
-        end
+        if not N1mmelUIDB.ilvlChar then return end
+        
         if InspectFrame and InspectFrame:IsShown() and InspectFrame.unit and UnitGUID(InspectFrame.unit) == guid then
+            -- Create average iLvl text at the bottom of the Inspect Frame
             if not InspectPaperDollItemsFrame.n1mmelAvgIlvl then
                 InspectPaperDollItemsFrame.n1mmelAvgIlvl = InspectPaperDollItemsFrame:CreateFontString(nil, "OVERLAY")
                 InspectPaperDollItemsFrame.n1mmelAvgIlvl:SetPoint("BOTTOM", InspectMainHandSlot, "TOP", 20, 15)
@@ -265,9 +271,11 @@ function ns.SetupInspectUI()
             end
         end
     end)
+    
     ns.inspectHooked = true
 end
 
+-- Wait for Blizzard's Inspect UI to load before hooking it
 if C_AddOns.IsAddOnLoaded("Blizzard_InspectUI") then
     ns.SetupInspectUI()
 else
@@ -282,7 +290,7 @@ else
 end
 
 ---------------------------------------------------------
--- MANUAL ITEM CHECK (Gem & Enchant Verification)
+-- 6. MANUAL ITEM CHECK (Gem & Enchant Verification)
 ---------------------------------------------------------
 function ns.RunItemCheck()
     local results = {}
@@ -293,10 +301,12 @@ function ns.RunItemCheck()
         if slotFrame then
             local slotId = slotFrame:GetID()
             local itemLink = GetInventoryItemLink("player", slotId)
+            
             if itemLink then
-                local itemName, _, _, _, _, _, _, _, _, icon = C_Item.GetItemInfo(itemLink)
+                local _, _, _, _, _, _, _, _, _, icon = C_Item.GetItemInfo(itemLink)
                 local iconString = icon and ("|T" .. icon .. ":16|t ") or ""
 
+                -- Check enchants
                 if enchantableSlotIDs[slotId] then
                     local enchantID = string.match(itemLink, "item:%d+:(%d*)")
                     if enchantID == "" or enchantID == nil or enchantID == "0" then
@@ -305,6 +315,7 @@ function ns.RunItemCheck()
                     end
                 end
 
+                -- Check sockets
                 local stats = C_Item.GetItemStats(itemLink)
                 local totalSockets = 0
                 if stats then
@@ -318,6 +329,7 @@ function ns.RunItemCheck()
                 if totalSockets > 0 then
                     local parts = {strsplit(":", itemLink)}
                     local filledGems = 0
+                    -- Gems are stored in positions 4 through 7 in the item link string
                     for i = 4, 7 do
                         if parts[i] and parts[i] ~= "" and parts[i] ~= "0" then
                             filledGems = filledGems + 1
@@ -326,8 +338,7 @@ function ns.RunItemCheck()
 
                     if filledGems < totalSockets then
                         local missing = totalSockets - filledGems
-                        table.insert(results, iconString .. itemLink .. ": |cFFFF0000" .. missing .. " " ..
-                            L.MISSING_GEM .. "|r")
+                        table.insert(results, iconString .. itemLink .. ": |cFFFF0000" .. missing .. " " .. L.MISSING_GEM .. "|r")
                         hasMissing = true
                     end
                 end
@@ -339,6 +350,7 @@ function ns.RunItemCheck()
         table.insert(results, "|cFF00FF00" .. L.ALL_PERFECT .. "|r")
     end
 
+    -- Output handling (Window vs Chat)
     if N1mmelUIDB.checkOutput == "WINDOW" and ns.checkWin then
         ns.checkWin.content:SetText(table.concat(results, "\n\n"))
         ns.checkWin:Show()
@@ -347,8 +359,7 @@ function ns.RunItemCheck()
         local color = RAID_CLASS_COLORS[classTag]
         local classHex = string.format("ff%02x%02x%02x", color.r * 255, color.g * 255, color.b * 255)
 
-        print("|c" .. classHex .. "\n[ n1mmelUI ]\n|r")
-        print("|cFFFFFFFF  " .. L.BTN_CHECK .. ":|r")
+        print("|c" .. classHex .. "\n[ n1mmelUI ] " .. L.BTN_CHECK .. ":|r")
         print(" ")
         for _, line in ipairs(results) do
             print("  |cFF00FFFF•|r " .. line)
@@ -358,14 +369,16 @@ function ns.RunItemCheck()
 end
 
 ---------------------------------------------------------
--- PLAYER AVERAGE ITEM LEVEL (Character Frame)
+-- 7. PLAYER AVERAGE ITEM LEVEL (Stats Panel)
 ---------------------------------------------------------
 hooksecurefunc("PaperDollFrame_SetItemLevel", function(statFrame, unit)
     if unit == "player" then
         local _, avgIlvlEquipped = GetAverageItemLevel()
         if avgIlvlEquipped and statFrame.Value then
             statFrame.Value:SetText(string.format("%.2f", avgIlvlEquipped))
-        end
-        ns.SetUIFont(statFrame.Value, N1mmelUIDB.ilvlCharSize or 13, "OUTLINE")
+        end       
+        
+        -- Override the default blizzard font with our clean addon font
+        ns.SetUIFont(statFrame.Value, 17, "OUTLINE")
     end
 end)

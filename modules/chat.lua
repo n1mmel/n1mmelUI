@@ -2,7 +2,7 @@ local addonName, ns = ...
 local L = ns.L
 
 ---------------------------------------------------------
--- WHISPER ALERTS
+-- 1. WHISPER ALERTS (Sound Notifications)
 ---------------------------------------------------------
 local soundPaths = {
     ["Bell"] = "Interface\\AddOns\\n1mmelUI\\media\\sounds\\Bell.ogg",
@@ -22,30 +22,39 @@ whisperEventFrame:RegisterEvent("CHAT_MSG_WHISPER")
 whisperEventFrame:RegisterEvent("CHAT_MSG_BN_WHISPER")
 
 whisperEventFrame:SetScript("OnEvent", function(self, event, ...)
+    -- Exit if whisper alerts are disabled in settings
     if not N1mmelUIDB.whisperAlert then
         return
     end
 
     local soundFile = soundPaths[N1mmelUIDB.whisperSound or "Bell"]
     if soundFile then
-        -- We play on "Master" channel to ensure it's heard even if SFX is low
+        -- Play on the "Master" channel to ensure it's heard even if SFX is low
         PlaySoundFile(soundFile, "Master")
     end
 end)
 
 ---------------------------------------------------------
--- CHAT IMPROVEMENTS (Vanilla+ Features)
+-- 2. CHAT CLASS COLORS
 ---------------------------------------------------------
--- 1. Classcolor
 function ns.UpdateChatClassColors()
-    local types = {"SAY", "EMOTE", "YELL", "GUILD", "OFFICER", "PARTY", "PARTY_LEADER", "RAID", "RAID_LEADER",
-                   "RAID_WARNING", "INSTANCE_CHAT", "INSTANCE_CHAT_LEADER", "WHISPER", "WHISPER_INFORM"}
+    -- List of all chat types that should be colored by class
+    local types = {
+        "SAY", "EMOTE", "YELL", "GUILD", "OFFICER", "PARTY", "PARTY_LEADER", 
+        "RAID", "RAID_LEADER", "RAID_WARNING", "INSTANCE_CHAT", "INSTANCE_CHAT_LEADER", 
+        "WHISPER", "WHISPER_INFORM"
+    }
+    
     for _, chatType in ipairs(types) do
+        -- Applies the boolean setting from the database to the Blizzard API
         SetChatColorNameByClass(chatType, N1mmelUIDB.chatClassColors)
     end
 end
 
--- 2. Popup-Window for URLs
+---------------------------------------------------------
+-- 3. URL POPUP FRAME (Copy Window)
+---------------------------------------------------------
+-- Create the hidden popup window for copying links
 local urlPopup = CreateFrame("Frame", "N1mmelURLPopup", UIParent, "BasicFrameTemplateWithInset")
 urlPopup:SetSize(350, 100)
 urlPopup:SetPoint("CENTER")
@@ -55,7 +64,7 @@ urlPopup:Hide()
 urlPopup.title = urlPopup:CreateFontString(nil, "OVERLAY")
 urlPopup.title:SetFontObject("GameFontHighlight")
 urlPopup.title:SetPoint("TOP", 0, -8)
-urlPopup.title:SetText(L.URL_COPY_TEXT or "Link kopieren (Strg+C)")
+urlPopup.title:SetText(L.URL_COPY_TEXT or "Copy Link (Ctrl+C)")
 
 local urlEditBox = CreateFrame("EditBox", nil, urlPopup, "InputBoxTemplate")
 urlEditBox:SetHeight(30)
@@ -64,13 +73,18 @@ urlEditBox:SetPoint("RIGHT", -20, -15)
 urlEditBox:SetAutoFocus(true)
 urlEditBox:SetFontObject("ChatFontNormal")
 
+-- Close the window when pressing Escape
 urlEditBox:SetScript("OnEscapePressed", function(self)
     urlPopup:Hide()
 end)
+
+-- Auto-highlight the text when the window opens
 urlPopup:SetScript("OnShow", function()
     urlEditBox:SetFocus()
     urlEditBox:HighlightText()
 end)
+
+-- Prevent the user from accidentally typing into the box and altering the URL
 urlEditBox:SetScript("OnTextChanged", function(self, userInput)
     if userInput then
         self:SetText(self.currentURL or "")
@@ -78,48 +92,46 @@ urlEditBox:SetScript("OnTextChanged", function(self, userInput)
     end
 end)
 
--- 3. Chat-Hook for short channelnames & URLs
+---------------------------------------------------------
+-- 4. CHAT MESSAGE HOOK (Short Channels & URLs)
+---------------------------------------------------------
 function ns.SetupChatModifications()
-    local issecret = issecretvalue or function()
-        return false
-    end
-
+    -- Compatibility fallback for Blizzard's secret value censorship
+    local issecret = issecretvalue or function() return false end
     local NUM_CHAT_FRAMES = NUM_CHAT_WINDOWS or 10
-    for i = 1, NUM_CHAT_FRAMES or 10 do
+
+    -- Loop through all chat frames and hook their AddMessage function
+    for i = 1, NUM_CHAT_FRAMES do
         local frame = _G["ChatFrame" .. i]
         if frame then
+            -- Store the original function safely
             if not frame.n1OriginalAddMessage then
                 frame.n1OriginalAddMessage = frame.AddMessage
             end
 
+            -- Overwrite the AddMessage function to filter text before it's drawn
             frame.AddMessage = function(self, text, r, g, b, id)
+                -- Only process valid, non-secret string messages
                 if type(text) == "string" and not issecret(text) then
 
+                    -- 4a. Shorten Channel Names
                     if N1mmelUIDB.shortChannels then
+                        -- Compress custom channel numbers (e.g. "[1. General]" to "[1]")
                         text = text:gsub("|Hchannel:(.-)|h%[(%d+)%.%s*(.-)%]|h", "|Hchannel:%1|h[%2]|h")
 
-                        text = text:gsub("|Hchannel:(.-)|h%[" .. (L.CHAT_GUILD or "Guild") .. "%]|h",
-                            "|Hchannel:%1|h[G]|h")
-                        text = text:gsub("|Hchannel:(.-)|h%[" .. (L.CHAT_PARTY or "Party") .. "%]|h",
-                            "|Hchannel:%1|h[P]|h")
-                        text = text:gsub("|Hchannel:(.-)|h%[" .. (L.CHAT_PARTY_LEADER or "Party Leader") .. "%]|h",
-                            "|Hchannel:%1|h[PL]|h")
-                        text = text:gsub("|Hchannel:(.-)|h%[" .. (L.CHAT_RAID or "Raid") .. "%]|h",
-                            "|Hchannel:%1|h[R]|h")
-                        text = text:gsub("|Hchannel:(.-)|h%[" .. (L.CHAT_RAID_LEADER or "Raid Leader") .. "%]|h",
-                            "|Hchannel:%1|h[RL]|h")
-                        text = text:gsub("|Hchannel:(.-)|h%[" .. (L.CHAT_RAID_WARNING or "Raid Warning") .. "%]|h",
-                            "|Hchannel:%1|h[RW]|h")
-                        text = text:gsub("|Hchannel:(.-)|h%[" .. (L.CHAT_OFFICER or "Officer") .. "%]|h",
-                            "|Hchannel:%1|h[O]|h")
-                        text = text:gsub("|Hchannel:(.-)|h%[" .. (L.CHAT_INSTANCE or "Instance") .. "%]|h",
-                            "|Hchannel:%1|h[I]|h")
-                        text = text:gsub(
-                            "|Hchannel:(.-)|h%[" .. (L.CHAT_INSTANCE_LEADER or "Instance Leader") .. "%]|h",
-                            "|Hchannel:%1|h[IL]|h")
+                        -- Shorten standard Blizzard channels using localization
+                        text = text:gsub("|Hchannel:(.-)|h%[" .. (L.CHAT_GUILD or "Guild") .. "%]|h", "|Hchannel:%1|h[G]|h")
+                        text = text:gsub("|Hchannel:(.-)|h%[" .. (L.CHAT_PARTY or "Party") .. "%]|h", "|Hchannel:%1|h[P]|h")
+                        text = text:gsub("|Hchannel:(.-)|h%[" .. (L.CHAT_PARTY_LEADER or "Party Leader") .. "%]|h", "|Hchannel:%1|h[PL]|h")
+                        text = text:gsub("|Hchannel:(.-)|h%[" .. (L.CHAT_RAID or "Raid") .. "%]|h", "|Hchannel:%1|h[R]|h")
+                        text = text:gsub("|Hchannel:(.-)|h%[" .. (L.CHAT_RAID_LEADER or "Raid Leader") .. "%]|h", "|Hchannel:%1|h[RL]|h")
+                        text = text:gsub("|Hchannel:(.-)|h%[" .. (L.CHAT_RAID_WARNING or "Raid Warning") .. "%]|h", "|Hchannel:%1|h[RW]|h")
+                        text = text:gsub("|Hchannel:(.-)|h%[" .. (L.CHAT_OFFICER or "Officer") .. "%]|h", "|Hchannel:%1|h[O]|h")
+                        text = text:gsub("|Hchannel:(.-)|h%[" .. (L.CHAT_INSTANCE or "Instance") .. "%]|h", "|Hchannel:%1|h[I]|h")
+                        text = text:gsub("|Hchannel:(.-)|h%[" .. (L.CHAT_INSTANCE_LEADER or "Instance Leader") .. "%]|h", "|Hchannel:%1|h[IL]|h")
                     end
 
-                    -- URLs klickbar machen
+                    -- 4b. Format Web URLs to be clickable
                     if N1mmelUIDB.chatURLs then
                         text = text:gsub("(%s)(https?://[%w_/%.%?=&%-]+)", "%1|Hn1url:%2|h|cFF00FFFF[%2]|r|h")
                         text = text:gsub("(%s)(www%.[%w_/%.%?=&%-]+)", "%1|Hn1url:%2|h|cFF00FFFF[%2]|r|h")
@@ -128,14 +140,19 @@ function ns.SetupChatModifications()
                     end
                 end
 
+                -- Return the processed text to the original Blizzard function
                 return self.n1OriginalAddMessage(self, text, r, g, b, id)
             end
         end
     end
 end
 
--- 4. Click URL Hook
+---------------------------------------------------------
+-- 5. URL CLICK HANDLER
+---------------------------------------------------------
+-- Hook into Blizzard's item link clicking system
 hooksecurefunc("SetItemRef", function(link, text, button, chatFrame)
+    -- If the clicked link is our custom "n1url", open the copy popup
     if link and string.sub(link, 1, 5) == "n1url" then
         local url = string.sub(link, 7)
         urlEditBox.currentURL = url

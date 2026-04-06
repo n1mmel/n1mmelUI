@@ -8,24 +8,27 @@
 ## Category-ruRU: Интерфейс пользователя
 ## Author: n1mmel
 ## Version: 1.2.2
-## SavedVariables: N1mmelUIDB
+## SavedVariablesPerCharacter: N1mmelUIDB
 ## IconTexture: 136243
 
+# 1. Libraries
 libs\LibStub\LibStub.lua
 libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
 libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
 
+# 2. Localization
 locales\enUS.lua
+locales\enGB.lua
 locales\deDE.lua
 locales\frFR.lua
 locales\esES.lua
 locales\ruRU.lua
-locales\enGB.lua
-core.lua
-modules\font.lua
-gui.lua
 
-#Modules
+# 3. Core 
+core.lua
+
+# 4. Modules
+modules\font.lua
 modules\infowindow.lua
 modules\chat.lua
 modules\automation.lua
@@ -34,3 +37,6 @@ modules\tooltip.lua
 modules\itemlevel.lua
 modules\unitframes.lua
 modules\qol.lua
+
+# 5. GUI
+gui.lua

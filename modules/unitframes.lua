@@ -2,13 +2,17 @@ local addonName, ns = ...
 local L = ns.L
 
 ---------------------------------------------------------
--- 1. CLASS COLORING LOGIC
+-- 1. CLASS COLORING LOGIC (Healthbars)
 ---------------------------------------------------------
 function ns.ApplyUnitClassColor(statusbar, unit)
+    -- Exit if no unit exists or it doesn't match the statusbar's target
     if not unit or not statusbar.unit or statusbar.unit ~= unit then return end
+    -- Only apply to player and target frames
     if unit ~= "target" and unit ~= "player" then return end
 
     local tex = statusbar:GetStatusBarTexture()
+    
+    -- Option: Class Colors enabled and target is a player
     if N1mmelUIDB.targetClassColor and UnitIsPlayer(unit) then
         local _, class = UnitClass(unit)
         if class then
@@ -21,16 +25,18 @@ function ns.ApplyUnitClassColor(statusbar, unit)
         end
     end
 
+    -- Default Reaction Colors (Option disabled or target is an NPC)
     if tex then tex:SetDesaturated(false) end
+    
     if unit == "player" then
-        statusbar:SetStatusBarColor(0, 1, 0)
+        statusbar:SetStatusBarColor(0, 1, 0) -- Green
     elseif unit == "target" and UnitExists("target") then
         if UnitIsEnemy("player", "target") then
-            statusbar:SetStatusBarColor(1, 0, 0)
+            statusbar:SetStatusBarColor(1, 0, 0) -- Red (Hostile)
         elseif UnitCanAttack("player", "target") then
-            statusbar:SetStatusBarColor(1, 1, 0)
+            statusbar:SetStatusBarColor(1, 1, 0) -- Yellow (Neutral)
         else
-            statusbar:SetStatusBarColor(0, 1, 0)
+            statusbar:SetStatusBarColor(0, 1, 0) -- Green (Friendly)
         end
     end
 end
@@ -41,8 +47,8 @@ end
 local function SkinAllTexts(frame, size, reset)
     if not frame then return end
     
-    -- NEU: Sicherheitsfilter 1 (Namen ignorieren)
-    -- Wenn der Frame für Kampftext zuständig ist, brechen wir ab.
+    -- Safety Filter 1: Ignore combat text (HitIndicators)
+    -- If the frame is responsible for taking damage text on the portrait, we abort.
     if frame.GetName and frame:GetName() then
         local name = frame:GetName()
         if string.find(name, "HitIndicator") or string.find(name, "Feedback") then
@@ -50,12 +56,12 @@ local function SkinAllTexts(frame, size, reset)
         end
     end
 
-    -- Wenn das Objekt ein FontString ist
+    -- If the object is a FontString
     if frame:IsObjectType("FontString") then
-        -- NEU: Sicherheitsfilter 2 (Riesige Schriften ignorieren)
+        -- Safety Filter 2: Ignore oversized fonts
         local _, currentSize = frame:GetFont()
         if currentSize and currentSize > 20 then
-            -- Wir machen nichts! Dieser Text ist absichtlich so groß für Animationen.
+            -- Do nothing! This text is intentionally huge for Blizzard animations.
         else
             if reset then
                 frame:SetFont(STANDARD_TEXT_FONT, size, "OUTLINE")
@@ -65,18 +71,18 @@ local function SkinAllTexts(frame, size, reset)
         end
     end
 
-    -- Rekursion für Kinder
+    -- Recursion for all children frames
     local children = {frame:GetChildren()}
     for _, child in ipairs(children) do
         SkinAllTexts(child, size, reset)
     end
     
-    -- Rekursion für Regionen
+    -- Recursion for all regions (where textures and fontstrings live)
     local regions = {frame:GetRegions()}
     for _, region in ipairs(regions) do
         if region:IsObjectType("FontString") then
             local _, currentSize = region:GetFont()
-            -- Auch bei Regionen den Größen-Filter anwenden
+            -- Apply the size filter to regions as well
             if not (currentSize and currentSize > 20) then
                 if reset then
                     region:SetFont(STANDARD_TEXT_FONT, size, "OUTLINE")
@@ -92,12 +98,12 @@ function ns.UpdateUnitFrameFonts()
     local targets = { PlayerFrame, TargetFrame, FocusFrame }
     local chosenSize = N1mmelUIDB.unitFrameFontSize or 13
     
-    -- Wir prüfen hier, ob der Haken aus ist
+    -- Check if the database option for custom fonts is turned off
     local shouldReset = not N1mmelUIDB.unitFrameFonts
 
     for _, frame in ipairs(targets) do
         if frame then
-            -- Wir übergeben 'shouldReset' an die Skin-Funktion
+            -- Pass the 'shouldReset' flag to the skinning function
             SkinAllTexts(frame, chosenSize, shouldReset)
         end
     end
@@ -106,12 +112,14 @@ end
 ---------------------------------------------------------
 -- 3. INITIALIZATION & HOOKS
 ---------------------------------------------------------
+-- Force an immediate update (used by the GUI options)
 function ns.ForceTargetColorUpdate()
     if PlayerFrame and PlayerFrame.healthbar then ns.ApplyUnitClassColor(PlayerFrame.healthbar, "player") end
     if TargetFrame and TargetFrame.healthbar then ns.ApplyUnitClassColor(TargetFrame.healthbar, "target") end
     ns.UpdateUnitFrameFonts()
 end
 
+-- Hook into Blizzard's native healthbar updates
 hooksecurefunc("UnitFrameHealthBar_Update", ns.ApplyUnitClassColor)
 hooksecurefunc("HealthBar_OnValueChanged", function(self)
     if self.unit == "target" or self.unit == "player" then
@@ -123,11 +131,12 @@ end)
 local fontEventFrame = CreateFrame("Frame")
 fontEventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 fontEventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
--- DIE ZEILE MIT "UNIT_HEALTH" WURDE HIER GELÖSCHT!
+-- Note: "UNIT_HEALTH" was deliberately removed here to prevent FPS drops during combat!
+
 fontEventFrame:SetScript("OnEvent", function()
     ns.UpdateUnitFrameFonts()
 end)
 
--- Initial Timers
+-- Initial Timers to ensure everything is caught during the login sequence
 C_Timer.After(1, ns.UpdateUnitFrameFonts)
 C_Timer.After(3, ns.UpdateUnitFrameFonts)

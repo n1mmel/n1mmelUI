@@ -2,18 +2,19 @@ local addonName, ns = ...
 local L = ns.L
 
 ---------------------------------------------------------
--- TOOLTIP CLASS COLORS, ROLES & TARGET
+-- 1. TOOLTIP MODIFICATIONS (Class Colors, Roles, Target)
 ---------------------------------------------------------
+-- Fallback for Blizzard's secret value API changes
 local issecret = issecretvalue or function() return false end
 
 TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tooltip)
     local _, unit = tooltip:GetUnit()
     
-    -- Wenn es keine Einheit gibt oder sie von Blizzard versteckt wird -> Abbruch!
+    -- Exit if there is no unit or if it is protected by Blizzard's anti-taint system
     if not unit or issecret(unit) then return end
 
-    -- 1. Klassenfarbe für Spielernamen
     if UnitIsPlayer(unit) then
+        -- 1a. Class Color for Player Names
         local _, classTag = UnitClass(unit)
         local color = RAID_CLASS_COLORS[classTag]
         
@@ -25,60 +26,60 @@ TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tool
             end
         end
         
-        -- 2. Rollenerkennung (Funktioniert für Gruppen- und Raidmitglieder)
+        -- 1b. Role Detection (Works for party and raid members)
         local role = UnitGroupRolesAssigned(unit)
         if role and role ~= "NONE" then
             local roleText = ""
             local r, g, b = 1, 1, 1
             
             if role == "TANK" then
-                roleText = L.ROLE_TANK or "Rolle: Tank"
-                r, g, b = 0.4, 0.6, 1 -- Helles Blau
+                roleText = L.ROLE_TANK or "Role: Tank"
+                r, g, b = 0.4, 0.6, 1 -- Light Blue
             elseif role == "HEALER" then
-                roleText = L.ROLE_HEALER or "Rolle: Heiler"
-                r, g, b = 0.4, 1, 0.4 -- Helles Grün
+                roleText = L.ROLE_HEALER or "Role: Healer"
+                r, g, b = 0.4, 1, 0.4 -- Light Green
             elseif role == "DAMAGER" then
-                roleText = L.ROLE_DAMAGER or "Rolle: DD"
-                r, g, b = 1, 0.4, 0.4 -- Helles Rot
+                roleText = L.ROLE_DAMAGER or "Role: DPS"
+                r, g, b = 1, 0.4, 0.4 -- Light Red
             end
             
             tooltip:AddLine(roleText, r, g, b)
         end
     end
 
-    -- 3. Ziel des Ziels (Target of Target)
+    -- 2. Target of Target (ToT)
     local targetUnit = unit .. "target"
     
-    -- Auch hier prüfen, ob die Ziel-Einheit eventuell geschützt ist
+    -- Check if the target unit exists and is not protected
     if not issecret(targetUnit) and UnitExists(targetUnit) then
         local targetName = UnitName(targetUnit)
-        local hexColor = "ffffffff" -- Standard Weiß
+        local hexColor = "ffffffff" -- Default White
         
         if UnitIsPlayer(targetUnit) then
-            -- Wenn das Ziel ein Spieler ist -> Klassenfarbe
+            -- If target is a player -> Use Class Color
             local _, classTag = UnitClass(targetUnit)
             local c = RAID_CLASS_COLORS[classTag]
             if c then
                 hexColor = string.format("ff%02x%02x%02x", c.r * 255, c.g * 255, c.b * 255)
             end
         else
-            -- Wenn das Ziel ein NPC ist -> Reaktionen auslesen (Feindlich/Neutral/Freundlich)
+            -- If target is an NPC -> Use Reaction Color (Hostile/Neutral/Friendly)
             local reaction = UnitReaction(targetUnit, "player")
             if reaction then
                 if reaction < 4 then
-                    hexColor = "ffff2222" -- Rot (Feindlich)
+                    hexColor = "ffff2222" -- Red (Hostile)
                 elseif reaction == 4 then
-                    hexColor = "ffffff22" -- Gelb (Neutral)
+                    hexColor = "ffffff22" -- Yellow (Neutral)
                 else
-                    hexColor = "ff22ff22" -- Grün (Freundlich)
+                    hexColor = "ff22ff22" -- Green (Friendly)
                 end
             end
         end
         
         if targetName then
+            -- Add an empty line for spacing, then the target info
             tooltip:AddLine(" ")
-            tooltip:AddLine((L.TOOLTIP_TARGET or "Ziel:") .. " |c" .. hexColor .. targetName .. "|r")
-            tooltip:AddLine(" ")
+            tooltip:AddLine((L.TOOLTIP_TARGET or "Target:") .. " |c" .. hexColor .. targetName .. "|r")
         end
     end
 end)
