@@ -127,7 +127,7 @@ hooksecurefunc("HealthBar_OnValueChanged", function(self)
     end
 end)
 
--- Event handling for fonts
+-- Event handling for fonts and colors
 local fontEventFrame = CreateFrame("Frame")
 fontEventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 fontEventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
@@ -137,6 +137,16 @@ fontEventFrame:SetScript("OnEvent", function()
     ns.UpdateUnitFrameFonts()
 end)
 
--- Initial Timers to ensure everything is caught during the login sequence
-C_Timer.After(1, ns.UpdateUnitFrameFonts)
-C_Timer.After(3, ns.UpdateUnitFrameFonts)
+-- Deferred initialization: run after PLAYER_LOGIN to guarantee frames are fully built
+local initFrame = CreateFrame("Frame")
+initFrame:RegisterEvent("PLAYER_LOGIN")
+initFrame:SetScript("OnEvent", function(self)
+    self:UnregisterEvent("PLAYER_LOGIN")
+    ns.UpdateUnitFrameFonts()
+    ns.ForceTargetColorUpdate()
+    -- Second pass after a short delay in case some frames finish loading slightly later
+    C_Timer.After(1, function()
+        ns.UpdateUnitFrameFonts()
+        ns.ForceTargetColorUpdate()
+    end)
+end)

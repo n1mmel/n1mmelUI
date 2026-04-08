@@ -5,11 +5,13 @@ local L = ns.L
 -- 1. SESSION DATA (Save on Login)
 ---------------------------------------------------------
 -- Save the initial gold amount exactly when the player logs in
-local sessionStartCopper = GetMoney()
+-- Default to 0 until PLAYER_LOGIN fires and we have a valid value
+local sessionStartCopper = 0
 local initFrame = CreateFrame("Frame")
 initFrame:RegisterEvent("PLAYER_LOGIN")
-initFrame:SetScript("OnEvent", function()
-    sessionStartCopper = GetMoney()
+initFrame:SetScript("OnEvent", function(self)
+    self:UnregisterEvent("PLAYER_LOGIN")
+    sessionStartCopper = GetMoney() or 0
 end)
 
 ---------------------------------------------------------
@@ -48,6 +50,14 @@ local infoDivider = ns.infoWindow:CreateTexture(nil, "ARTWORK")
 infoDivider:SetSize(90, 1)
 infoDivider:SetPoint("TOP", titleInfo, "BOTTOM", 0, -5) 
 infoDivider:SetColorTexture(ns.classColor.r, ns.classColor.g, ns.classColor.b, 0.8)
+
+-- Update divider color once class colors are known (PLAYER_LOGIN)
+local colorUpdateFrame = CreateFrame("Frame")
+colorUpdateFrame:RegisterEvent("PLAYER_LOGIN")
+colorUpdateFrame:SetScript("OnEvent", function(self)
+    self:UnregisterEvent("PLAYER_LOGIN")
+    infoDivider:SetColorTexture(ns.classColor.r, ns.classColor.g, ns.classColor.b, 0.8)
+end)
 
 -- Durability text (GameFontHighlight = White)
 local durText = ns.infoWindow:CreateFontString(nil, "OVERLAY", "GameFontHighlight")

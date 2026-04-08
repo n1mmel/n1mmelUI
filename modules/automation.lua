@@ -7,9 +7,9 @@ local L = ns.L
 local merchantFrame = CreateFrame("Frame")
 merchantFrame:RegisterEvent("MERCHANT_SHOW")
 merchantFrame:SetScript("OnEvent", function()
-    -- Get player class color for chat prefix
+    -- Get player class color for chat prefix (nil-safe)
     local _, classTag = UnitClass("player")
-    local color = RAID_CLASS_COLORS[classTag]
+    local color = (classTag and RAID_CLASS_COLORS[classTag]) or { r = 1, g = 1, b = 1 }
     local classHex = string.format("ff%02x%02x%02x", color.r * 255, color.g * 255, color.b * 255)
     local prefix = "|c" .. classHex .. "n1mmelUI:|r"
 

@@ -132,6 +132,13 @@ L.PLAYER = "Игрок"
 L.CURSOR = "Курсор"
 L.FONT_LABEL = "Общий шрифт:"
 L.FONT_RELOAD_WARN = "Требуется /rl для применения шрифта везде."
+L.BTN_RELOAD = "Перезагрузить UI"
+L.RELOAD_DESC = "При возникновении проблем перезагрузите UI с\n /reload или кнопкой справа ->"
+L.CB_INFO_WINDOW = "Показать информационное окно"
+L.CB_UNITFRAME_FONTS = "Настроить шрифты рамок отряда"
+L.SESSION_GOLD = "Сессия (Золото)"
+L.CURSE_LINK_TEXT = "n1mmelUI на CurseForge"
+L.HIGHEST_KEY = "Лучший ключ за неделю:"
 
 ---------------------------------------------------------
 -- 11. OPTIONS GUI: INFO PANEL

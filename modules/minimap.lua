@@ -22,7 +22,7 @@ bg:SetColorTexture(0, 0, 0, 0.7)
 
 local coordsText = coordsFrame:CreateFontString(nil, "OVERLAY")
 coordsText:SetPoint("CENTER")
-ns.SetUIFont(coordsText, 14, "OUTLINE")
+if ns.SetUIFont then ns.SetUIFont(coordsText, 14, "OUTLINE") end
 
 coordsFrame:SetScript("OnUpdate", function()
     if not WorldMapFrame:IsShown() then return end
@@ -79,7 +79,7 @@ mmBg:SetColorTexture(0, 0, 0, 0.6)
 
 local mmText = ns.mmCoordsFrame:CreateFontString(nil, "OVERLAY")
 mmText:SetPoint("CENTER")
-ns.SetUIFont(mmText, 13, "OUTLINE")
+if ns.SetUIFont then ns.SetUIFont(mmText, 13, "OUTLINE") end
 
 local mmTimer = 0
 ns.mmCoordsFrame:SetScript("OnUpdate", function(self, elapsed)

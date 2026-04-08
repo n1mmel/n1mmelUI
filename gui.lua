@@ -178,12 +178,6 @@ local function BuildPage1_General(page)
     fontWarn:SetTextColor(0.8, 0.8, 0.8)
     fontWarn:SetText(L.FONT_RELOAD_WARN)
 
-    local fontReload = page:CreateFontString(nil, "ARTWORK")
-    fontReload:SetPoint("TOPLEFT", fontWarn, "BOTTOMLEFT", 20, -75)
-    ns.SetUIFont(fontReload, 11)
-    fontReload:SetTextColor(0.8, 0.8, 0.8)
-    fontReload:SetText(L.RELOAD_DESC or "If there is any problem, try reloading the UI with\n /reload or by clicking the button to your right ->")
-
     local btnReloadTemplate = GameMenuFrame and GameMenuFrame.buttonTemplate or "GameMenuButtonTemplate"
     local btnReload = CreateFrame("BUTTON", nil, page, btnReloadTemplate)
     btnReload:SetSize(100, 30)
@@ -639,44 +633,53 @@ local function BuildPage7_Mythic(page)
 
     -- Update Logic whenever the page is shown
     local function UpdateMythicPage()
-        local score = C_ChallengeMode.GetOverallDungeonScore()
-        local color = C_ChallengeMode.GetDungeonScoreRarityColor(score) or HIGHLIGHT_FONT_COLOR
+        -- Overall score (guard against nil from API changes)
+        local score = (C_ChallengeMode and C_ChallengeMode.GetOverallDungeonScore and C_ChallengeMode.GetOverallDungeonScore()) or 0
+        local color = (C_ChallengeMode and C_ChallengeMode.GetDungeonScoreRarityColor and C_ChallengeMode.GetDungeonScoreRarityColor(score)) or HIGHLIGHT_FONT_COLOR
         mScoreVal:SetText(score > 0 and score or "0")
         mScoreVal:SetTextColor(color.r, color.g, color.b)
 
         local _, classTag = UnitClass("player")
-        local c = RAID_CLASS_COLORS[classTag] or { r = 1, g = 1, b = 1 }
+        local c = (classTag and RAID_CLASS_COLORS[classTag]) or { r = 1, g = 1, b = 1 }
         local classHex = string.format("ff%02x%02x%02x", c.r * 255, c.g * 255, c.b * 255)
-        local specName = GetSpecialization() and select(2, GetSpecializationInfo(GetSpecialization())) or ""
-        local avgIlvl = math.floor(select(2, GetAverageItemLevel()))
+        local specIdx = GetSpecialization()
+        local specName = (specIdx and select(2, GetSpecializationInfo(specIdx))) or ""
+        local avgIlvl = math.floor(select(2, GetAverageItemLevel()) or 0)
         
-        mPlayerInfo:SetText("|c" .. classHex .. UnitName("player") .. " - " .. specName .. "|r |cFFFFFFFF(iLvl: " .. avgIlvl .. ")|r")
+        mPlayerInfo:SetText("|c" .. classHex .. (UnitName("player") or "?") .. " - " .. specName .. "|r |cFFFFFFFF(iLvl: " .. avgIlvl .. ")|r")
 
-        -- Find highest run map
+        -- Find highest weekly key (guard against missing C_MythicPlus API)
         local highest = 0
-        local maps = C_ChallengeMode.GetMapTable()
-        for _, mapID in ipairs(maps) do
-            local _, level = C_MythicPlus.GetWeeklyBestForMap(mapID)
-            if level and level > highest then highest = level end
+        if C_ChallengeMode and C_ChallengeMode.GetMapTable and C_MythicPlus and C_MythicPlus.GetWeeklyBestForMap then
+            local maps = C_ChallengeMode.GetMapTable() or {}
+            for _, mapID in ipairs(maps) do
+                local ok, level = pcall(function()
+                    local _, lvl = C_MythicPlus.GetWeeklyBestForMap(mapID)
+                    return lvl
+                end)
+                if ok and level and level > highest then highest = level end
+            end
         end
         mWeeklyVal:SetText(highest > 0 and ("+" .. highest) or "-")
 
-        -- Update Currency limits
+        -- Update Currency Crests
         for i, data in ipairs(crestIDs) do
-            local info = C_CurrencyInfo.GetCurrencyInfo(data.id)
-            if info and crestFrames[i] then
-                crestFrames[i].icon:SetTexture(info.iconFileID)
-                crestFrames[i].txt:SetText(info.quantity)
-                
-                local total = info.totalEarned or 0
-                local maxQ = info.maxQuantity or 0
-                crestFrames[i].progress:SetText(total .. " / " .. maxQ)
-                
-                -- Cap warning color
-                if total >= maxQ and maxQ > 0 then
-                    crestFrames[i].progress:SetTextColor(1, 0, 0)
-                else
-                    crestFrames[i].progress:SetTextColor(1, 1, 1)
+            if C_CurrencyInfo and crestFrames[i] then
+                local info = C_CurrencyInfo.GetCurrencyInfo(data.id)
+                if info then
+                    crestFrames[i].icon:SetTexture(info.iconFileID)
+                    crestFrames[i].txt:SetText(info.quantity or 0)
+                    
+                    local total = info.totalEarned or 0
+                    local maxQ = info.maxQuantity or 0
+                    crestFrames[i].progress:SetText(total .. " / " .. maxQ)
+                    
+                    -- Cap warning color
+                    if maxQ > 0 and total >= maxQ then
+                        crestFrames[i].progress:SetTextColor(1, 0, 0)
+                    else
+                        crestFrames[i].progress:SetTextColor(1, 1, 1)
+                    end
                 end
             end
         end

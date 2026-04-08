@@ -98,21 +98,20 @@ end)
 function ns.SetupChatModifications()
     -- Compatibility fallback for Blizzard's secret value censorship
     local issecret = issecretvalue or function() return false end
-    local NUM_CHAT_FRAMES = NUM_CHAT_WINDOWS or 10
+    -- NUM_CHAT_WINDOWS is the correct global in modern WoW; fallback to 10
+    local numFrames = NUM_CHAT_WINDOWS or 10
 
-    -- Loop through all chat frames and hook their AddMessage function
-    for i = 1, NUM_CHAT_FRAMES do
+    for i = 1, numFrames do
         local frame = _G["ChatFrame" .. i]
-        if frame then
-            -- Store the original function safely
-            if not frame.n1OriginalAddMessage then
-                frame.n1OriginalAddMessage = frame.AddMessage
-            end
+        -- Only hook frames that haven't been hooked yet and have a valid AddMessage
+        if frame and not frame.n1OriginalAddMessage and type(frame.AddMessage) == "function" then
+            -- Store the original function safely before overwriting
+            frame.n1OriginalAddMessage = frame.AddMessage
 
-            -- Overwrite the AddMessage function to filter text before it's drawn
             frame.AddMessage = function(self, text, r, g, b, id)
                 -- Only process valid, non-secret string messages
-                if type(text) == "string" and not issecret(text) then
+                -- Also guard against N1mmelUIDB not being ready
+                if N1mmelUIDB and type(text) == "string" and not issecret(text) then
 
                     -- 4a. Shorten Channel Names
                     if N1mmelUIDB.shortChannels then
@@ -140,7 +139,7 @@ function ns.SetupChatModifications()
                     end
                 end
 
-                -- Return the processed text to the original Blizzard function
+                -- Always call the original Blizzard function
                 return self.n1OriginalAddMessage(self, text, r, g, b, id)
             end
         end

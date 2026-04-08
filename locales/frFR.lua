@@ -132,6 +132,13 @@ L.PLAYER = "Joueur"
 L.CURSOR = "Curseur"
 L.FONT_LABEL = "Police globale :"
 L.FONT_RELOAD_WARN = "Un /rl est requis pour appliquer la police partout."
+L.BTN_RELOAD = "Recharger l'UI"
+L.RELOAD_DESC = "En cas de problème, rechargez l'UI avec\n /reload ou le bouton à droite ->"
+L.CB_INFO_WINDOW = "Afficher la fenêtre d'info"
+L.CB_UNITFRAME_FONTS = "Personnaliser les polices des cadres"
+L.SESSION_GOLD = "Session (Or)"
+L.CURSE_LINK_TEXT = "n1mmelUI sur CurseForge"
+L.HIGHEST_KEY = "Clé hebdomadaire la plus haute :"
 
 ---------------------------------------------------------
 -- 11. OPTIONS GUI: INFO PANEL

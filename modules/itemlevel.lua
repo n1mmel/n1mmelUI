@@ -185,42 +185,53 @@ function ns.UpdateBagItemLevels()
 end
 
 -- Hooks for updating bags when items move
-if ContainerFrameCombinedBags then
-    hooksecurefunc(ContainerFrameCombinedBags, "UpdateItems", ns.UpdateAllBagButtons)
-end
+-- These are deferred to PLAYER_LOGIN to guarantee the frames exist.
+local bagHookFrame = CreateFrame("Frame")
+bagHookFrame:RegisterEvent("PLAYER_LOGIN")
+bagHookFrame:SetScript("OnEvent", function(self)
+    self:UnregisterEvent("PLAYER_LOGIN")
 
-if ContainerFrameContainer and ContainerFrameContainer.ContainerFrames then
-    for _, frame in ipairs(ContainerFrameContainer.ContainerFrames) do
-        hooksecurefunc(frame, "UpdateItems", ns.UpdateAllBagButtons)
+    if ContainerFrameCombinedBags then
+        hooksecurefunc(ContainerFrameCombinedBags, "UpdateItems", ns.UpdateAllBagButtons)
     end
-end
 
--- Hook for modern Bank Panels
-local function hookBankPanel(panel)
-    if not panel then return end
-    local update = function(frame)
-        if frame and frame.EnumerateValidItems then
-            for a, b in frame:EnumerateValidItems() do
-                local btn = type(a) == "table" and a or b
-                if btn and type(btn) == "table" and btn.GetID then
-                    local bag = btn.GetBankTabID and btn:GetBankTabID() or btn:GetBagID()
-                    local slot = btn.GetContainerSlotID and btn:GetContainerSlotID() or btn:GetID()
-                    UpdateContainerButton(btn, bag, slot)
-                end
+    if ContainerFrameContainer and ContainerFrameContainer.ContainerFrames then
+        for _, frame in ipairs(ContainerFrameContainer.ContainerFrames) do
+            if frame and frame.UpdateItems then
+                hooksecurefunc(frame, "UpdateItems", ns.UpdateAllBagButtons)
             end
         end
     end
-    
-    if panel.GenerateItemSlotsForSelectedTab then
-        hooksecurefunc(panel, "GenerateItemSlotsForSelectedTab", update)
-    end
-    if panel.RefreshAllItemsForSelectedTab then
-        hooksecurefunc(panel, "RefreshAllItemsForSelectedTab", update)
-    end
-end
 
-if rawget(_G, "BankPanel") then hookBankPanel(rawget(_G, "BankPanel")) end
-if rawget(_G, "AccountBankPanel") then hookBankPanel(rawget(_G, "AccountBankPanel")) end
+    -- Hook for modern Bank Panels (may or may not be loaded yet)
+    local function hookBankPanel(panel)
+        if not panel then return end
+        local update = function(frame)
+            if frame and frame.EnumerateValidItems then
+                for a, b in frame:EnumerateValidItems() do
+                    local btn = type(a) == "table" and a or b
+                    if btn and type(btn) == "table" and btn.GetID then
+                        local bag = btn.GetBankTabID and btn:GetBankTabID() or btn:GetBagID()
+                        local slot = btn.GetContainerSlotID and btn:GetContainerSlotID() or btn:GetID()
+                        UpdateContainerButton(btn, bag, slot)
+                    end
+                end
+            end
+        end
+
+        if panel.GenerateItemSlotsForSelectedTab and not panel.n1mmelHooked then
+            hooksecurefunc(panel, "GenerateItemSlotsForSelectedTab", update)
+            panel.n1mmelHooked = true
+        end
+        if panel.RefreshAllItemsForSelectedTab and not panel.n1mmelHooked2 then
+            hooksecurefunc(panel, "RefreshAllItemsForSelectedTab", update)
+            panel.n1mmelHooked2 = true
+        end
+    end
+
+    if rawget(_G, "BankPanel") then hookBankPanel(rawget(_G, "BankPanel")) end
+    if rawget(_G, "AccountBankPanel") then hookBankPanel(rawget(_G, "AccountBankPanel")) end
+end)
 
 ---------------------------------------------------------
 -- 5. INSPECT FRAME (Other Players)

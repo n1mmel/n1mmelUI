@@ -4,11 +4,19 @@ local L = ns.L
 ---------------------------------------------------------
 -- 1. GLOBAL VARIABLES & UTILITIES
 ---------------------------------------------------------
-local _, classTag = UnitClass("player")
--- Store RGB values globally (ns.classColor.r, ns.classColor.g, ns.classColor.b)
-ns.classColor = RAID_CLASS_COLORS[classTag] or { r = 1, g = 1, b = 1 }
--- Store the hex code for text formatting (e.g., "|c" .. ns.classHex .. "Text|r")
-ns.classHex = string.format("ff%02x%02x%02x", ns.classColor.r * 255, ns.classColor.g * 255, ns.classColor.b * 255)
+-- Initialize with safe defaults; real values are set in PLAYER_LOGIN
+ns.classColor = { r = 1, g = 1, b = 1 }
+ns.classHex   = "ffffffff"
+
+-- Called once in PLAYER_LOGIN to populate real class color values
+local function InitClassColors()
+    local _, classTag = UnitClass("player")
+    ns.classColor = (classTag and RAID_CLASS_COLORS[classTag]) or { r = 1, g = 1, b = 1 }
+    ns.classHex   = string.format("ff%02x%02x%02x",
+        ns.classColor.r * 255,
+        ns.classColor.g * 255,
+        ns.classColor.b * 255)
+end
 
 ---------------------------------------------------------
 -- 2. DATABASE INITIALIZATION
@@ -239,7 +247,7 @@ eventFrame:RegisterEvent("PLAYER_LOGIN") -- Waits until the character has loaded
 
 eventFrame:SetScript("OnEvent", function(self, event, arg1)
 
-    -- PHASE 1: Load database
+    -- PHASE 1: Load database (fires once when our addon is loaded)
     if event == "ADDON_LOADED" and arg1 == addonName then
         ns.InitDB()
 
@@ -250,7 +258,11 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         end
 
     -- PHASE 2: Build UI (Player is now 100% loaded)
+    -- All module functions are guaranteed to exist at this point.
     elseif event == "PLAYER_LOGIN" then
+
+        -- Initialize class colors now that UnitClass() returns valid data
+        InitClassColors()
 
         -- Trigger Chat Module Functions
         if ns.UpdateChatClassColors then ns.UpdateChatClassColors() end
@@ -280,18 +292,18 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
 
         -- Apply Global Fonts
         if ns.UpdateAllFonts then ns.UpdateAllFonts() end
-    end
-    
-    -- Apply Unit Frame Fonts & Colors
-    if ns.UpdateUnitFrameFonts then ns.UpdateUnitFrameFonts() end
-    if ns.ForceTargetColorUpdate then ns.ForceTargetColorUpdate() end
 
-    -- Check Info Window status
-    if ns.infoWindow then
-        if N1mmelUIDB.infoWindow then
-            ns.infoWindow:Show()
-        else
-            ns.infoWindow:Hide()
+        -- Apply Unit Frame Fonts & Colors
+        if ns.UpdateUnitFrameFonts then ns.UpdateUnitFrameFonts() end
+        if ns.ForceTargetColorUpdate then ns.ForceTargetColorUpdate() end
+
+        -- Check Info Window status
+        if ns.infoWindow then
+            if N1mmelUIDB.infoWindow then
+                ns.infoWindow:Show()
+            else
+                ns.infoWindow:Hide()
+            end
         end
     end
 end)

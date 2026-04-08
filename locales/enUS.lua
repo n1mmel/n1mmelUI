@@ -131,6 +131,13 @@ L.PLAYER = "Player"
 L.CURSOR = "Cursor"
 L.FONT_LABEL = "Global Font:"
 L.FONT_RELOAD_WARN = "A reload with /rl is required to apply the font everywhere."
+L.BTN_RELOAD = "Reload UI"
+L.RELOAD_DESC = "If there is any problem, try reloading the UI with\n /reload or by clicking the button to your right ->"
+L.CB_INFO_WINDOW = "Show Info Window"
+L.CB_UNITFRAME_FONTS = "Customize Unit Frame Fonts"
+L.SESSION_GOLD = "Session (Gold)"
+L.CURSE_LINK_TEXT = "n1mmelUI on CurseForge"
+L.HIGHEST_KEY = "Highest Weekly Key:"
 
 ---------------------------------------------------------
 -- 11. OPTIONS GUI: INFO PANEL

@@ -132,6 +132,13 @@ L.PLAYER = "Jugador"
 L.CURSOR = "Cursor"
 L.FONT_LABEL = "Fuente global:"
 L.FONT_RELOAD_WARN = "Se requiere /rl para aplicar la fuente en todas partes."
+L.BTN_RELOAD = "Recargar UI"
+L.RELOAD_DESC = "Si hay algún problema, recarga la UI con\n /reload o el botón de la derecha ->"
+L.CB_INFO_WINDOW = "Mostrar ventana de información"
+L.CB_UNITFRAME_FONTS = "Personalizar fuentes de marcos de unidad"
+L.SESSION_GOLD = "Sesión (Oro)"
+L.CURSE_LINK_TEXT = "n1mmelUI en CurseForge"
+L.HIGHEST_KEY = "Clave semanal más alta:"
 
 ---------------------------------------------------------
 -- 11. OPTIONS GUI: INFO PANEL

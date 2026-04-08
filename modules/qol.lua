@@ -9,20 +9,22 @@ thFrame:RegisterEvent("ADDON_LOADED")
 thFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 
 thFrame:SetScript("OnEvent", function(self, event, addon)
-    -- Only proceed if the TalkingHeadUI is loaded (Load-On-Demand)
+    -- Guard: ADDON_LOADED fires for every addon - only react to Blizzard_TalkingHeadUI
     if event == "ADDON_LOADED" and addon ~= "Blizzard_TalkingHeadUI" then
         return
+    end
+    -- Guard: PLAYER_ENTERING_WORLD fires on every zone change - only run if DB is ready
+    if event == "PLAYER_ENTERING_WORLD" then
+        if not N1mmelUIDB then return end
     end
 
     local function UpdateTalkingHead()
         if not TalkingHeadFrame then return end
         
         if N1mmelUIDB.hideTalkingHead then
-            -- Unregister the event to prevent the frame from ever appearing
             TalkingHeadFrame:UnregisterEvent("TALKINGHEAD_REQUESTED")
             TalkingHeadFrame:Hide()
         else
-            -- Restore default behavior
             TalkingHeadFrame:RegisterEvent("TALKINGHEAD_REQUESTED")
         end
     end
@@ -107,8 +109,8 @@ afkEventFrame:SetScript("OnEvent", function(self, event, unit)
     -- Ignore flag changes from other players
     if event == "PLAYER_FLAGS_CHANGED" and unit ~= "player" then return end
     
-    -- Exit if feature is disabled
-    if not N1mmelUIDB.afkScreen then return end
+    -- Exit if DB not ready or feature is disabled
+    if not N1mmelUIDB or not N1mmelUIDB.afkScreen then return end
 
     -- Stop AFK mode instantly on critical events (combat, queues, loading screens)
     if event == "PLAYER_LEAVING_WORLD" or event == "LFG_PROPOSAL_SHOW" or event == "READY_CHECK" or event == "PLAYER_REGEN_DISABLED" then
@@ -191,6 +193,7 @@ durabilityEventFrame:RegisterEvent("UPDATE_INVENTORY_DURABILITY")
 durabilityEventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 
 durabilityEventFrame:SetScript("OnEvent", function(self, event)
+    if not N1mmelUIDB then return end
     local currentDurability, maxDurability = 0, 0
 
     -- Calculate overall durability across all equipped items
