@@ -53,7 +53,12 @@ function ns.InitDB()
             showCrestFrame = false,
             crestFramePos = {"CENTER", nil, "CENTER", 0, 0},
             crestFontSize = 11,
-            infoWindow = false
+            infoWindow = false,
+            interruptTracker = false,
+            interruptSpell = "Counterspell",
+            interruptPos = nil,
+            cursorEnhancer = false,
+            cursorColorMode = "CLASS"
         }
     end
 
@@ -82,6 +87,11 @@ function ns.InitDB()
     if N1mmelUIDB.unitFrameFontSize == nil then N1mmelUIDB.unitFrameFontSize = 13 end
     if N1mmelUIDB.debugMode == nil then N1mmelUIDB.debugMode = false end
     if N1mmelUIDB.infoWindow == nil then N1mmelUIDB.infoWindow = false end
+    if N1mmelUIDB.interruptTracker == nil then N1mmelUIDB.interruptTracker = false end
+    if N1mmelUIDB.interruptSpell == nil then N1mmelUIDB.interruptSpell = "Counterspell" end
+    if N1mmelUIDB.interruptPos == nil then N1mmelUIDB.interruptPos = nil end
+    if N1mmelUIDB.cursorEnhancer == nil then N1mmelUIDB.cursorEnhancer = false end
+    if N1mmelUIDB.cursorColorMode == nil then N1mmelUIDB.cursorColorMode = "CLASS" end
 end
 
 ---------------------------------------------------------

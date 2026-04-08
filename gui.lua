@@ -499,6 +499,115 @@ local function BuildPage5_UI(page)
         N1mmelUIDB.afkScreen = self:GetChecked()
         if ns.ToggleAFKScreen then ns.ToggleAFKScreen() end
     end)
+
+    -- Divider
+    local uiDivider = page:CreateTexture(nil, "ARTWORK")
+    uiDivider:SetSize(420, 1)
+    uiDivider:SetPoint("TOPLEFT", cbAFK, "BOTTOMLEFT", -5, -15)
+    uiDivider:SetColorTexture(1, 1, 1, 0.15)
+
+    -- 7. Cursor Enhancer
+    local cbCursor = ns.CreateCheckbox(page, uiDivider, "TOPLEFT", "BOTTOMLEFT", 5, -10, L.CB_CURSOR_ENHANCER or "Show ring around cursor (better visibility)", N1mmelUIDB.cursorEnhancer, function(self)
+        N1mmelUIDB.cursorEnhancer = self:GetChecked()
+        if ns.UpdateCursorEnhancer then ns.UpdateCursorEnhancer() end
+    end)
+
+    -- Cursor color mode: class color or white
+    local cursorColorLabel = page:CreateFontString(nil, "ARTWORK")
+    cursorColorLabel:SetPoint("TOPLEFT", cbCursor, "BOTTOMLEFT", 20, -5)
+    ns.SetUIFont(cursorColorLabel, 11)
+    cursorColorLabel:SetTextColor(0.7, 0.7, 0.7)
+    cursorColorLabel:SetText(L.CURSOR_COLOR_LABEL or "Ring color:")
+
+    local cursorColorDrop = CreateFrame("DropdownButton", "N1mmelCursorColorDrop", page, "WowStyle1DropdownTemplate")
+    cursorColorDrop:SetPoint("LEFT", cursorColorLabel, "RIGHT", 8, 0)
+    cursorColorDrop:SetWidth(130)
+    cursorColorDrop:SetupMenu(function(dropdown, rootDescription)
+        AddStyledRadio(rootDescription, L.CURSOR_COLOR_CLASS or "Class Color",
+            function() return N1mmelUIDB.cursorColorMode == "CLASS" or N1mmelUIDB.cursorColorMode == nil end,
+            function()
+                N1mmelUIDB.cursorColorMode = "CLASS"
+                if ns.UpdateCursorEnhancer then ns.UpdateCursorEnhancer() end
+            end)
+        AddStyledRadio(rootDescription, L.CURSOR_COLOR_WHITE or "White",
+            function() return N1mmelUIDB.cursorColorMode == "WHITE" end,
+            function()
+                N1mmelUIDB.cursorColorMode = "WHITE"
+                if ns.UpdateCursorEnhancer then ns.UpdateCursorEnhancer() end
+            end)
+    end)
+    if cursorColorDrop.Text then ns.SetUIFont(cursorColorDrop.Text, 11) end
+
+    -- 8. Interrupt / Kick Tracker
+    local cbInterrupt = ns.CreateCheckbox(page, cbCursor, "TOPLEFT", "BOTTOMLEFT", 0, -35, L.CB_INTERRUPT_TRACKER or "Show spell/interrupt cooldown tracker (great for Mythic+)", N1mmelUIDB.interruptTracker, function(self)
+        N1mmelUIDB.interruptTracker = self:GetChecked()
+        if ns.UpdateInterruptTracker then ns.UpdateInterruptTracker() end
+    end)
+
+    -- Spell name/ID input for interrupt tracker
+    local spellLabel = page:CreateFontString(nil, "ARTWORK")
+    spellLabel:SetPoint("TOPLEFT", cbInterrupt, "BOTTOMLEFT", 5, -12)
+    ns.SetUIFont(spellLabel, 12)
+    spellLabel:SetText(L.INTERRUPT_SPELL_LABEL or "Interrupt Spell Name:")
+
+    -- Name input box (user types the spell name here)
+    local spellBox = CreateFrame("EditBox", "N1mmelInterruptSpellBox", page, "InputBoxTemplate")
+    spellBox:SetSize(150, 24)
+    spellBox:SetPoint("LEFT", spellLabel, "RIGHT", 8, 0)
+    spellBox:SetAutoFocus(false)
+    spellBox:SetMaxLetters(60)
+    spellBox:SetFontObject("ChatFontNormal")
+    spellBox:SetText(N1mmelUIDB.interruptSpell or "Counterspell")
+
+    -- ID display label (read-only, shown next to the name box)
+    local idLabel = page:CreateFontString(nil, "ARTWORK")
+    idLabel:SetPoint("LEFT", spellBox, "RIGHT", 8, 0)
+    ns.SetUIFont(idLabel, 11)
+    idLabel:SetTextColor(0.5, 0.5, 0.5)
+
+    -- Helper: update the ID label from the current spellID
+    local function RefreshIDLabel()
+        if ns.GetInterruptSpellID and ns.GetInterruptSpellID() then
+            idLabel:SetText("|cff888888ID: |r|cffffd100" .. ns.GetInterruptSpellID() .. "|r")
+        else
+            idLabel:SetText("|cffff4444" .. (L.INTERRUPT_NO_SPELL or "Not found") .. "|r")
+        end
+    end
+
+    spellBox:SetScript("OnEnterPressed", function(self)
+        self:ClearFocus()
+        local input = self:GetText()
+        if ns.SetInterruptSpell then
+            ns.SetInterruptSpell(input)
+        end
+        -- Show the resolved spell name (not the raw ID)
+        if N1mmelUIDB.interruptSpell then
+            self:SetText(N1mmelUIDB.interruptSpell)
+        end
+        RefreshIDLabel()
+    end)
+
+    spellBox:SetScript("OnEscapePressed", function(self)
+        self:ClearFocus()
+        self:SetText(N1mmelUIDB.interruptSpell or "Counterspell")
+        RefreshIDLabel()
+    end)
+
+    -- Show initial ID label state
+    RefreshIDLabel()
+
+    local spellHint = page:CreateFontString(nil, "ARTWORK")
+    spellHint:SetPoint("TOPLEFT", spellLabel, "BOTTOMLEFT", 0, -8)
+    ns.SetUIFont(spellHint, 10)
+    spellHint:SetTextColor(0.5, 0.5, 0.5)
+    spellHint:SetText(L.INTERRUPT_SPELL_HINT or "Enter the spell name exactly as shown in your spellbook, then press Enter.")
+
+    -- Refresh the spell box and ID label every time this tab is opened
+    page:SetScript("OnShow", function()
+        local resolvedName = N1mmelUIDB.interruptSpell or "Counterspell"
+        spellBox:SetText(resolvedName)
+        RefreshIDLabel()
+    end)
 end
 
 local function BuildPage6_Chat(page)
@@ -631,6 +740,12 @@ local function BuildPage7_Mythic(page)
         crestFrames[i] = f
     end
 
+    -- Event listener: fires when the server sends fresh Mythic+ run data
+    -- We register this once and use it to update the weekly key display
+    local mythicDataFrame = CreateFrame("Frame")
+    mythicDataFrame:RegisterEvent("MYTHIC_PLUS_CURRENT_AFFIX_UPDATE")
+    mythicDataFrame:RegisterEvent("CHALLENGE_MODE_COMPLETED")
+
     -- Update Logic whenever the page is shown
     local function UpdateMythicPage()
         -- Overall score (guard against nil from API changes)
@@ -648,7 +763,7 @@ local function BuildPage7_Mythic(page)
         
         mPlayerInfo:SetText("|c" .. classHex .. (UnitName("player") or "?") .. " - " .. specName .. "|r |cFFFFFFFF(iLvl: " .. avgIlvl .. ")|r")
 
-        -- Find highest weekly key (guard against missing C_MythicPlus API)
+        -- Find highest weekly key from locally cached data
         local highest = 0
         if C_ChallengeMode and C_ChallengeMode.GetMapTable and C_MythicPlus and C_MythicPlus.GetWeeklyBestForMap then
             local maps = C_ChallengeMode.GetMapTable() or {}
@@ -684,7 +799,40 @@ local function BuildPage7_Mythic(page)
             end
         end
     end
-    page:SetScript("OnShow", UpdateMythicPage)
+
+    -- When the server sends fresh data, update if our tab is visible
+    mythicDataFrame:SetScript("OnEvent", function()
+        if page:IsShown() then
+            UpdateMythicPage()
+        end
+    end)
+
+    page:SetScript("OnShow", function()
+        -- Show placeholder while waiting for server data
+        mWeeklyVal:SetText("...")
+
+        -- Request fresh weekly run data from the server.
+        -- This is the same call the Blizzard Mythic+ frame makes on open.
+        if C_MythicPlus and C_MythicPlus.RequestMapInfo then
+            C_MythicPlus.RequestMapInfo()
+        end
+        if C_MythicPlus and C_MythicPlus.RequestCurrentAffixes then
+            C_MythicPlus.RequestCurrentAffixes()
+        end
+        if C_MythicPlus and C_MythicPlus.RequestRecentEvents then
+            C_MythicPlus.RequestRecentEvents()
+        end
+
+        -- Run with whatever is locally cached right now (may already be correct)
+        UpdateMythicPage()
+
+        -- After a short delay, run again in case the server responded in the meantime
+        C_Timer.After(1.5, function()
+            if page:IsShown() then
+                UpdateMythicPage()
+            end
+        end)
+    end)
 end
 
 local function BuildPage8_Info(page)
@@ -781,6 +929,8 @@ function ns.BuildStandaloneGUI()
     ns.checkWin:SetScript("OnDragStart", ns.checkWin.StartMoving)
     ns.checkWin:SetScript("OnDragStop", ns.checkWin.StopMovingOrSizing)
     ns.checkWin:SetFrameStrata("DIALOG")
+    ns.checkWin:SetFrameLevel(50)
+    ns.checkWin:SetScript("OnShow", function(self) self:Raise() end)
     ns.checkWin:Hide()
     tinsert(UISpecialFrames, ns.checkWin:GetName()) -- Allow closing with ESC
 
@@ -834,6 +984,8 @@ function ns.BuildStandaloneGUI()
     n1mmelGUI:SetScript("OnDragStart", n1mmelGUI.StartMoving)
     n1mmelGUI:SetScript("OnDragStop", n1mmelGUI.StopMovingOrSizing)
     n1mmelGUI:SetFrameStrata("DIALOG")
+    n1mmelGUI:SetFrameLevel(50)
+    n1mmelGUI:SetScript("OnShow", function(self) self:Raise() end)
     n1mmelGUI:Hide()
     tinsert(UISpecialFrames, n1mmelGUI:GetName())
 

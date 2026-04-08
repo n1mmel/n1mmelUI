@@ -37,6 +37,8 @@ modules\tooltip.lua
 modules\itemlevel.lua
 modules\unitframes.lua
 modules\qol.lua
+modules\interrupt.lua
+modules\cursor.lua
 
 # 5. GUI
 gui.lua
