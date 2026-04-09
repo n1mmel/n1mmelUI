@@ -29,6 +29,7 @@ L.PING = "Ping:"
 -- 3. TOOLTIPS & UNIT ROLES
 ---------------------------------------------------------
 L.TOOLTIP_TARGET = "Ziel:"
+L.TOOLTIP_ROLE = "Rolle:"
 L.ROLE_TANK = "Rolle: Tank"
 L.ROLE_HEALER = "Rolle: Heiler"
 L.ROLE_DAMAGER = "Rolle: DD"
