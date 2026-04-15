@@ -7,12 +7,14 @@
 ## Category-frFR: Interface utilisateur
 ## Category-ruRU: Интерфейс пользователя
 ## Author: n1mmel
-## Version: 1.3
-## SavedVariablesPerCharacter: N1mmelUIDB
+## Version: 1.2.2
+## SavedVariables: N1mmelUIDB
+## SavedVariablesPerCharacter: N1mmelCharDB
 ## IconTexture: 136243
 
 # 1. Libraries
 libs\LibStub\LibStub.lua
+libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
 libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
 libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
 
@@ -39,6 +41,7 @@ modules\unitframes.lua
 modules\qol.lua
 modules\interrupt.lua
 modules\cursor.lua
+modules\runreport.lua
 
 # 5. GUI
 gui.lua

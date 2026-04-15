@@ -9,6 +9,9 @@ L.ADDON_TITLE = "n1mmelUI"
 L.WELCOME_TITLE = "Welcome to %s"
 L.LOAD_MSG = "%s loaded! |cFFFFFFFF(/n1 for menu, /rl to reload)|r"
 L.GUI_ERROR = "|cFFFF0000n1mmelUI:|r GUI not loaded yet."
+L.MINIMAP_LEFT_CLICK = "Left-click: Open Menu"
+L.MINIMAP_RIGHT_CLICK = "Right-click: Open Mythic Run Report"
+L.NO_RUN_DATA = "No run data available yet."
 
 ---------------------------------------------------------
 -- 2. INFO WINDOW & MINIMAP
@@ -31,6 +34,8 @@ L.TOOLTIP_TARGET = "Target:"
 L.TOOLTIP_ROLE = "Role:"
 L.TOOLTIP_HP = "HP:"
 L.TOOLTIP_ILVL = "Item Level:"
+L.TOOLTIP_MPLUS = "Mythic+ Score:"
+L.TOOLTIP_HIGHEST_KEY = "Highest Key:"
 L.ROLE_TANK = "Role: Tank"
 L.ROLE_HEALER = "Role: Healer"
 L.ROLE_DAMAGER = "Role: DPS"
@@ -150,6 +155,8 @@ L.CB_UNITFRAME_FONTS = "Customize Unit Frame Fonts"
 L.SESSION_GOLD = "Session (Gold)"
 L.CURSE_LINK_TEXT = "n1mmelUI on CurseForge"
 L.HIGHEST_KEY = "Highest Weekly Key:"
+L.CB_RUN_REPORT = "Show run summary after Mythic+ completion"
+L.BTN_TEST_REPORT = "Test Window"
 
 ---------------------------------------------------------
 -- 11. OPTIONS GUI: INFO PANEL

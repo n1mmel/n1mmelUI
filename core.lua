@@ -90,8 +90,27 @@ function ns.InitDB()
     if N1mmelUIDB.interruptTracker == nil then N1mmelUIDB.interruptTracker = false end
     if N1mmelUIDB.interruptSpell == nil then N1mmelUIDB.interruptSpell = "Counterspell" end
     if N1mmelUIDB.interruptPos == nil then N1mmelUIDB.interruptPos = nil end
+    if N1mmelUIDB.interruptSize == nil then N1mmelUIDB.interruptSize = 34 end
     if N1mmelUIDB.cursorEnhancer == nil then N1mmelUIDB.cursorEnhancer = false end
-    if N1mmelUIDB.cursorColorMode == nil then N1mmelUIDB.cursorColorMode = "CLASS" end
+    if N1mmelUIDB.showRunReport == nil then N1mmelUIDB.showRunReport = false end
+    if N1mmelUIDB.nameplateFont == nil then N1mmelUIDB.nameplateFont = false end
+    if N1mmelUIDB.nameplateSize == nil then N1mmelUIDB.nameplateSize = 12 end
+
+    -- Per-character DB: run history and debug log are character-specific
+    if N1mmelCharDB == nil then N1mmelCharDB = {} end
+    if N1mmelCharDB.runHistory == nil then N1mmelCharDB.runHistory = {} end
+    if N1mmelCharDB.debugLog == nil then N1mmelCharDB.debugLog = {} end
+
+    -- One-time migration: move runHistory from old account DB to char DB
+    if N1mmelUIDB.runHistory and #N1mmelUIDB.runHistory > 0 then
+        if #N1mmelCharDB.runHistory == 0 then
+            N1mmelCharDB.runHistory = N1mmelUIDB.runHistory
+        end
+        N1mmelUIDB.runHistory = nil
+    end
+    if N1mmelUIDB.debugLog then
+        N1mmelUIDB.debugLog = nil
+    end
 end
 
 ---------------------------------------------------------
@@ -102,24 +121,29 @@ local LDB = LibStub("LibDataBroker-1.1"):NewDataObject(addonName, {
     text = "n1mmelUI",
     icon = "Interface\\AddOns\\n1mmelUI\\media\\images\\icon.png",
 
-    -- Handle Clicks (Open GUI on left click)
-    OnClick = function(self, button)
+    -- Handle Clicks
+OnClick = function(self, button)
         if button == "LeftButton" then
-            ns.ToggleGUI()
+            ns.ToggleGUI() -- Öffnet dein Menü
+        elseif button == "RightButton" then
+            if ns.ShowRunReport then
+                ns.ShowRunReport(false) -- Öffnet den Report
+            end
         end
     end,
 
-    -- Build the Tooltip when hovering over the minimap icon
+-- Build the Tooltip when hovering over the minimap icon
     OnTooltipShow = function(tooltip)
-        -- Title in Class Color (Using the global utility from section 1)
+        -- Titel in Klassenfarbe
         tooltip:AddLine("n1mmelUI", ns.classColor.r, ns.classColor.g, ns.classColor.b)
         tooltip:AddLine(" ", 1, 1, 1)
-        tooltip:AddLine(L.LEFTCLICK_MINIMAP)
+        
+        -- Die lokalisierten Klick-Anweisungen
+        tooltip:AddLine(L.MINIMAP_LEFT_CLICK or "Left-click: Open Menu", 1, 1, 1)
+        tooltip:AddLine(L.MINIMAP_RIGHT_CLICK or "Right-click: Open Mythic Run Report", 1, 1, 1)
 
-        -- Calculate overall durability
+        -- Ab hier folgt dein bestehender Durability-Code
         local currentDurability, maxDurability = 0, 0
-
-        -- Iterate through all 18 possible equipment slots
         for i = 1, 18 do
             local current, max = GetInventoryItemDurability(i)
             if current and max then
@@ -247,6 +271,58 @@ SlashCmdList["N1MMELINFO"] = function()
     end
 end
 
+SLASH_N1MMELMYTHICTEST1 = "/n1mt"
+SlashCmdList["N1MMELMYTHICTEST"] = function(msg)
+    msg = msg and msg:lower():trim() or ""
+
+    if msg == "" or msg == "window" then
+        -- Just open the test window with fake data
+        if ns.ShowRunReport then ns.ShowRunReport(true) end
+
+    elseif msg == "start" then
+        -- Simulate CHALLENGE_MODE_START
+        if ns.SimulateMythicEvent then
+            ns.SimulateMythicEvent("START")
+        end
+        print("|cff00ccff[n1mUI]|r Simulated CHALLENGE_MODE_START")
+
+    elseif msg == "end" then
+        -- Simulate CHALLENGE_MODE_COMPLETED
+        if ns.SimulateMythicEvent then
+            ns.SimulateMythicEvent("COMPLETED")
+        end
+        print("|cff00ccff[n1mUI]|r Simulated CHALLENGE_MODE_COMPLETED – window should open in 2s")
+
+    elseif msg == "loot" then
+        -- Simulate a loot event for the player
+        if ns.SimulateMythicEvent then
+            ns.SimulateMythicEvent("LOOT")
+        end
+        print("|cff00ccff[n1mUI]|r Simulated loot event")
+
+    else
+        print("|cff00ccff[n1mUI]|r /n1mt commands:")
+        print("  |cffaaaaaa/n1mt|r          – open test window")
+        print("  |cffaaaaaa/n1mt start|r    – simulate key start")
+        print("  |cffaaaaaa/n1mt end|r      – simulate key end + open window")
+        print("  |cffaaaaaa/n1mt loot|r     – simulate loot drop")
+    end
+end
+
+SLASH_N1MMELDEBUG1 = "/n1mpdebug"
+SlashCmdList["N1MMELDEBUG"] = function()
+    if ns.ToggleRunReportDebug then
+        ns.ToggleRunReportDebug()
+    end
+end
+
+SLASH_N1MMELLOG1 = "/n1mplog"
+SlashCmdList["N1MMELLOG"] = function(msg)
+    if ns.PrintRunReportLog then
+        ns.PrintRunReportLog(msg == "clear")
+    end
+end
+
 ---------------------------------------------------------
 -- 6. BOOT SEQUENCE (Addon Loaded & Player Login)
 ---------------------------------------------------------
@@ -306,6 +382,9 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         -- Apply Unit Frame Fonts & Colors
         if ns.UpdateUnitFrameFonts then ns.UpdateUnitFrameFonts() end
         if ns.ForceTargetColorUpdate then ns.ForceTargetColorUpdate() end
+
+        -- Apply Nameplate Font
+        if ns.UpdateNameplateFont then ns.UpdateNameplateFont() end
 
         -- Check Info Window status
         if ns.infoWindow then

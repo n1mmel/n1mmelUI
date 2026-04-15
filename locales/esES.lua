@@ -10,6 +10,9 @@ L.ADDON_TITLE = "n1mmelUI"
 L.WELCOME_TITLE = "Bienvenido a %s"
 L.LOAD_MSG = "%s cargado! |cFFFFFFFF(/n1 para menú, /rl para recargar)|r"
 L.GUI_ERROR = "|cFFFF0000n1mmelUI:|r La interfaz aún no se ha cargado."
+L.MINIMAP_LEFT_CLICK = "Clic izquierdo: Abrir menú"
+L.MINIMAP_RIGHT_CLICK = "Clic derecho: Abrir informe de Mythic+"
+L.NO_RUN_DATA = "No hay datos de estancias disponibles."
 
 ---------------------------------------------------------
 -- 2. INFO WINDOW & MINIMAP
@@ -30,6 +33,10 @@ L.PING = "Ping:"
 ---------------------------------------------------------
 L.TOOLTIP_TARGET = "Objetivo:"
 L.TOOLTIP_ROLE = "Rol:"
+L.TOOLTIP_HP = "Vida:"
+L.TOOLTIP_ILVL = "Nivel de objeto:"
+L.TOOLTIP_MPLUS = "Puntuación Mítico+:"
+L.TOOLTIP_HIGHEST_KEY = "Clave más alta:"
 L.ROLE_TANK = "Rol: Tanque"
 L.ROLE_HEALER = "Rol: Sanador"
 L.ROLE_DAMAGER = "Rol: DPS"

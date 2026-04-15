@@ -539,7 +539,7 @@ local function BuildPage5_UI(page)
     if cursorColorDrop.Text then ns.SetUIFont(cursorColorDrop.Text, 11) end
 
     -- 8. Interrupt / Kick Tracker
-    local cbInterrupt = ns.CreateCheckbox(page, cbCursor, "TOPLEFT", "BOTTOMLEFT", 0, -35, L.CB_INTERRUPT_TRACKER or "Show spell/interrupt cooldown tracker (great for Mythic+)", N1mmelUIDB.interruptTracker, function(self)
+    local cbInterrupt = ns.CreateCheckbox(page, cbCursor, "TOPLEFT", "BOTTOMLEFT", 0, -35, L.CB_INTERRUPT_TRACKER or "Show kick/interrupt cooldown tracker (great for Mythic+)", N1mmelUIDB.interruptTracker, function(self)
         N1mmelUIDB.interruptTracker = self:GetChecked()
         if ns.UpdateInterruptTracker then ns.UpdateInterruptTracker() end
     end)
@@ -709,7 +709,8 @@ local function BuildPage7_Mythic(page)
     for i, data in ipairs(crestIDs) do
         local f = CreateFrame("Frame", nil, page)
         f:SetSize(60, 80)
-        f:SetPoint("BOTTOMLEFT", page, "BOTTOMLEFT", 50 + (i - 1) * 75, 30)
+        -- Moved up by 50px to make room for checkbox below
+        f:SetPoint("BOTTOMLEFT", page, "BOTTOMLEFT", 50 + (i - 1) * 75, 80)
 
         f.icon = f:CreateTexture(nil, "OVERLAY")
         f.icon:SetSize(32, 32)
@@ -729,16 +730,24 @@ local function BuildPage7_Mythic(page)
         f.label:SetText(data.name)
         f.label:SetTextColor(0.6, 0.6, 0.6)
 
-        -- Tooltips for Currency
         f:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetCurrencyByID(data.id)
             GameTooltip:Show()
         end)
         f:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        
+
         crestFrames[i] = f
     end
+
+    -- Run Report checkbox – centered at bottom
+    local cbRunReport = ns.CreateCheckbox(page, page, "BOTTOM", "BOTTOM", -120, 5,
+        L.CB_RUN_REPORT or "Show run summary after Mythic+ completion",
+        N1mmelUIDB.showRunReport,
+        function(self)
+            N1mmelUIDB.showRunReport = self:GetChecked()
+        end
+    )
 
     -- Event listener: fires when the server sends fresh Mythic+ run data
     -- We register this once and use it to update the weekly key display

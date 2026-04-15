@@ -10,6 +10,9 @@ L.ADDON_TITLE = "n1mmelUI"
 L.WELCOME_TITLE = "Добро пожаловать в %s"
 L.LOAD_MSG = "%s загружен! |cFFFFFFFF(/n1 для меню, /rl для перезагрузки)|r"
 L.GUI_ERROR = "|cFFFF0000n1mmelUI:|r Интерфейс еще не загружен."
+L.MINIMAP_LEFT_CLICK = "ЛКМ: Открыть меню"
+L.MINIMAP_RIGHT_CLICK = "ПКМ: Открыть отчет о прохождении"
+L.NO_RUN_DATA = "Данные о прохождениях отсутствуют."
 
 ---------------------------------------------------------
 -- 2. INFO WINDOW & MINIMAP
@@ -30,6 +33,10 @@ L.PING = "Пинг:"
 ---------------------------------------------------------
 L.TOOLTIP_TARGET = "Цель:"
 L.TOOLTIP_ROLE = "Роль:"
+L.TOOLTIP_HP = "HP:"
+L.TOOLTIP_ILVL = "Уровень предмета:"
+L.TOOLTIP_MPLUS = "Рейтинг Эпохального+:"
+L.TOOLTIP_HIGHEST_KEY = "Высший ключ:"
 L.ROLE_TANK = "Роль: Танк"
 L.ROLE_HEALER = "Роль: Лекарь"
 L.ROLE_DAMAGER = "Роль: Урон"

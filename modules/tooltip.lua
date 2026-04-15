@@ -6,29 +6,73 @@ local L = ns.L
 -- - Class colored player names
 -- - Role icon (Tank/Healer/DPS)
 -- - Item Level (players only)
+-- - Mythic+ Score with GUID-based cache (2h expiry)
 -- - Shift+Hover: auto-inspect for players outside group
 -- - Target of Target
 ---------------------------------------------------------
 
 local issecret = issecretvalue or function() return false end
 
--- Get item level for a unit, fully guarded against secret values
+---------------------------------------------------------
+-- M+ SCORE CACHE
+-- Key: player name (Ambiguate'd), Value: { score, time }
+-- GUID is secret in M+ for group members, so we use name.
+-- Expires after 2 hours, cleared on zone change.
+-- Max 200 entries.
+---------------------------------------------------------
+local CACHE_DURATION = 7200
+local CACHE_MAX      = 200
+local scoreCache     = {}  -- [playerName] = { score, time }
+
+local function ScoreCacheSet(name, score)
+    if not name or not score then return end
+    scoreCache[name] = { score = score, time = GetTime() }
+    local count = 0
+    for _ in pairs(scoreCache) do count = count + 1 end
+    if count > CACHE_MAX then
+        local oldest, oldestKey = math.huge, nil
+        for k, v in pairs(scoreCache) do
+            if v.time < oldest then oldest, oldestKey = v.time, k end
+        end
+        if oldestKey then scoreCache[oldestKey] = nil end
+    end
+end
+
+local function ScoreCacheGet(name)
+    if not name then return nil end
+    local entry = scoreCache[name]
+    if not entry then return nil end
+    if (GetTime() - entry.time) > CACHE_DURATION then
+        scoreCache[name] = nil
+        return nil
+    end
+    return entry.score
+end
+
+-- Clear on zone change (not on login/reload)
+local cacheFrame = CreateFrame("Frame")
+cacheFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+cacheFrame:SetScript("OnEvent", function(self, event, isLogin, isReload)
+    if not isLogin and not isReload then
+        scoreCache = {}
+    end
+end)
+
+---------------------------------------------------------
+-- ITEM LEVEL (no cache needed - Blizzard handles this)
+---------------------------------------------------------
 local function GetUnitItemLevel(unit)
     if unit == "player" then
         local avg = GetAverageItemLevel()
         if avg and not issecret(avg) then return math.floor(avg) end
         return nil
     end
-
-    -- C_PaperDollInfo.GetInspectItemLevel can return a secret value in M+
     if C_PaperDollInfo and C_PaperDollInfo.GetInspectItemLevel then
         local ilvl = C_PaperDollInfo.GetInspectItemLevel(unit)
         if ilvl and not issecret(ilvl) and ilvl > 0 then
             return math.floor(ilvl)
         end
     end
-
-    -- Fallback: sum item slots via itemLinks (links are strings, never secret)
     local total, count = 0, 0
     for slot = 1, 17 do
         if slot ~= 4 then
@@ -47,10 +91,9 @@ local function GetUnitItemLevel(unit)
 end
 
 ---------------------------------------------------------
--- SHIFT+HOVER: auto-inspect for players outside group
--- Party/raid members: Blizzard caches data automatically.
--- Others: hold Shift while hovering to trigger NotifyInspect.
--- INSPECT_READY fires ~0.5s later and refreshes the tooltip.
+-- SHIFT+HOVER INSPECT
+-- On INSPECT_READY: read M+ score, write to cache,
+-- refresh tooltip instantly.
 ---------------------------------------------------------
 local inspectCooldown = 0
 
@@ -60,23 +103,33 @@ inspectFrame:SetScript("OnEvent", function(self, event, guid)
     if not GameTooltip:IsShown() then return end
     local _, unit = GameTooltip:GetUnit()
     if not unit or issecret(unit) then return end
-    -- UnitGUID can be secret in M+ for enemy units - use pcall
+    -- Check GUID match via pcall (can be secret)
     local ok, unitGuid = pcall(UnitGUID, unit)
-    if ok and unitGuid and unitGuid == guid then
-        GameTooltip:SetUnit(unit)
+    if ok and unitGuid and not issecret(unitGuid) and unitGuid ~= guid then return end
+    -- Read fresh score and cache by name
+    if C_PlayerInfo and C_PlayerInfo.GetPlayerMythicPlusRatingSummary then
+        local summary = C_PlayerInfo.GetPlayerMythicPlusRatingSummary(unit)
+        if summary and not issecret(summary) then
+            local s = summary.currentSeasonScore
+            if s and not issecret(s) and s > 0 then
+                local unitName = UnitName(unit)
+                if unitName and not issecret(unitName) then
+                    local key = Ambiguate(unitName, "none")
+                    ScoreCacheSet(key, math.floor(s))
+                end
+            end
+        end
     end
+    GameTooltip:SetUnit(unit)
 end)
 
 TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tooltip)
     local _, unit = tooltip:GetUnit()
     if not unit or issecret(unit) then return end
 
-    ---------------------------------------------------------
-    -- 2. Players only: class color + role icon + item level
-    ---------------------------------------------------------
     if UnitIsPlayer(unit) then
 
-        -- 2a. Class color for the name line
+        -- Class color for name
         local _, classTag = UnitClass(unit)
         local color = RAID_CLASS_COLORS[classTag]
         if color then
@@ -86,7 +139,7 @@ TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tool
             end
         end
 
-        -- 2b. Role icon
+        -- Role icon
         local role = UnitGroupRolesAssigned(unit)
         if role and role ~= "NONE" and not issecret(role) then
             local iconPath
@@ -105,7 +158,7 @@ TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tool
             end
         end
 
-        -- 2c. Item level (guarded: GetInspectItemLevel can be secret in M+)
+        -- Item Level (Blizzard caches this, no extra cache needed)
         local ilvl = GetUnitItemLevel(unit)
         if ilvl and ilvl > 0 then
             tooltip:AddLine(
@@ -114,11 +167,51 @@ TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tool
             )
         end
 
-        -- 2d. Shift+Hover: request inspect for players outside our group
-        -- so item level becomes available on next tooltip refresh (~0.5s)
-        if IsShiftKeyDown()
-        and not UnitInParty(unit) and not UnitInRaid(unit)
-        and unit ~= "player" then
+        -- Mythic+ Score: name-based cache (GUID is secret in M+)
+        local cacheKey = nil
+        local unitName = UnitName(unit)
+        if unitName and not issecret(unitName) then
+            cacheKey = Ambiguate(unitName, "none")
+        end
+
+        local score = cacheKey and ScoreCacheGet(cacheKey)
+        if not score then
+            -- Try live API
+            if C_PlayerInfo and C_PlayerInfo.GetPlayerMythicPlusRatingSummary then
+                local summary = C_PlayerInfo.GetPlayerMythicPlusRatingSummary(unit)
+                if summary and not issecret(summary) then
+                    local s = summary.currentSeasonScore
+                    if s and not issecret(s) and s > 0 then
+                        score = math.floor(s)
+                        if cacheKey then ScoreCacheSet(cacheKey, score) end
+                    end
+                end
+            end
+        end
+
+        if score and score > 0 then
+            local ratingColor = C_ChallengeMode and
+                C_ChallengeMode.GetDungeonScoreRarityColor and
+                C_ChallengeMode.GetDungeonScoreRarityColor(score)
+            local hex
+            if ratingColor and not issecret(ratingColor) then
+                hex = string.format("|cff%02x%02x%02x",
+                    ratingColor.r * 255,
+                    ratingColor.g * 255,
+                    ratingColor.b * 255)
+            else
+                hex = "|cffa335ee"
+            end
+            tooltip:AddLine(
+                (L.TOOLTIP_MPLUS or "Mythic+ Score:") ..
+                " " .. hex .. score .. "|r",
+                1, 1, 1
+            )
+        end
+
+        -- Shift+Hover: always available for players outside group
+        if IsShiftKeyDown() and unit ~= "player"
+        and not UnitInParty(unit) and not UnitInRaid(unit) then
             local now = GetTime()
             if now - inspectCooldown >= 2 then
                 inspectCooldown = now
@@ -128,19 +221,13 @@ TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tool
     end
 
     ---------------------------------------------------------
-    -- 3. Target of Target
-    --    UnitName(xTarget) and UnitExists(xTarget) ARE
-    --    protected in Midnight -> full issecretvalue guards
+    -- Target of Target
     ---------------------------------------------------------
     local targetUnit = unit .. "target"
-
-    -- UnitExists can return a secret value for enemy targets in M+
     local targetExists = UnitExists(targetUnit)
-    if targetExists and issecret(targetExists) then return end
-    if not targetExists then return end
+    if not targetExists or issecret(targetExists) then return end
 
     local targetName = UnitName(targetUnit)
-    -- UnitName for non-party targets is protected in M+
     if not targetName or issecret(targetName) then return end
 
     local hexColor = "ffffffff"
